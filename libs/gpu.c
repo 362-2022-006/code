@@ -11,7 +11,7 @@
     } while (0)
 
 #define GPU_FIFO_SIZE 8
-static GPU_FIFO gpu_fifo[8];
+static GPU_FIFO gpu_fifo[GPU_FIFO_SIZE];
 static volatile u8 gpu_fifo_start = 0; // first valid data
 static volatile u8 gpu_fifo_end = 0;   // point to insert data
 
@@ -27,16 +27,29 @@ void gpu_buffer_add(u16 x, u16 y, const u8 *data, u16 meta) {
     // gpu auto disables when buffer empty, reenable when new data inserted
     if (!(DMA->CCR & DMA_CCR_EN))
         // DMA->CCR |= DMA_CCR_EN;
-        DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler();
+        // DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler();
+        reenable_gpu();
 }
 
 // set up screen for sprite display
 void init_gpu() {
     init_lcd_spi();
     SPI->CR2 |= SPI_CR2_TXDMAEN;
-    setup_dma();
+    init_lcd_dma();
 
     init_screen(2);
+}
+
+void disable_gpu() {
+    SPI->CR2 &= ~SPI_CR2_TXDMAEN;
+    DMA->CCR &= ~DMA_CCR_EN;
+}
+
+void reenable_gpu() {
+    clear_lcd_flag(GPU_DISABLE);
+    SPI->CR2 |= SPI_CR2_TXDMAEN;
+    DMA->CCR |= DMA_CCR_EN;
+    DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler();
 }
 
 void DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler(void) {
@@ -67,7 +80,11 @@ void DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler(void) {
     static u16 cachex;
     static u16 cachey;
 
-    // static u8 disable = 0;
+    // if (check_lcd_flag(TEXT_SENDING)) {
+    //     set_lcd_flag(GPU_DISABLE);
+    //     disable_gpu();
+    //     return;
+    // }
 
     // acknowledge interrupt and disable dma
     DMA2->IFCR |= DMA_IFCR_CTCIF4;
@@ -75,10 +92,12 @@ void DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler(void) {
     // RESET_LOW;
 
     // nothing left in buffer, disable
-    if (gpu_fifo_start == gpu_fifo_end) {
+    if (gpu_fifo_start == gpu_fifo_end || check_lcd_flag(TEXT_SENDING) || check_lcd_flag(GPU_DISABLE)) {
         while (SPI->SR & SPI_SR_BSY)
             ;
         CS_HIGH();
+        set_lcd_flag(GPU_DISABLE);
+        disable_gpu();
         return;
     }
 

@@ -24,8 +24,8 @@ void unhook_timer(void) {
 }
 
 void TIM2_IRQHandler(void) {
-    TIM2->SR &= ~TIM_SR_UIF;
     if (hooked_fn_tim2) {
         hooked_fn_tim2();
     }
+    TIM2->SR &= ~TIM_SR_UIF;
 }

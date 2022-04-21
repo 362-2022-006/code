@@ -33,4 +33,7 @@ void init_gpu();
 void gpu_buffer_add(u16 x, u16 y, const u8 *data, u16 meta);
 void DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler(void);
 
+void disable_gpu();
+void reenable_gpu();
+
 #endif

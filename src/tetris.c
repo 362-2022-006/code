@@ -5,6 +5,7 @@
 #include "gpu.h"
 #include "hook.h"
 #include "keyboard.h"
+#include "lcd.h"
 #include "random.h"
 #include "types.h"
 
@@ -29,7 +30,8 @@ const u8 pieces[] = {
 };
 
 // frames between fall
-int rate = 15;
+#define STARTING_RATE 15
+int rate = STARTING_RATE;
 bool fast_fall = false;
 
 int score = 0;
@@ -59,6 +61,13 @@ void draw_background() {
         gpu_buffer_add(224, ypos, colors[0], 0);
     }
     draw_next_piece();
+
+    set_lcd_flag(TEXT_SENDING);
+    while (!check_lcd_flag(GPU_DISABLE))
+        ;
+    printf("\033[0;0H\t\t\t\t\t\tCleared: %d\n", score);
+    clear_lcd_flag(TEXT_SENDING);
+    reenable_gpu();
 }
 
 // handle clearing rows
@@ -81,8 +90,12 @@ void update_background() {
             }
             board[0] = 0;
             i++; // check the row that we just cleared again, stuff was moved down
+            // update score
+            score++;
         }
     }
+    int temp = STARTING_RATE - 2 * score / 10;
+    rate = temp > 0 ? temp : 1;
 }
 
 typedef struct {
@@ -128,6 +141,7 @@ void erase_piece(int xpos, int ypos) {
 
 void get_new_piece() {
     static int idx = 0;
+    static int newidx = 0;
 
     if (!next_piece.piece) {
         idx = get_random() % 7;
@@ -149,7 +163,13 @@ void get_new_piece() {
         .next_rotation = 0,
     };
 
-    idx = get_random() % 7;
+    newidx = get_random() % 7;
+    if (newidx == idx) {
+        idx = get_random() % 7;
+    } else {
+        idx = newidx;
+    }
+    
     next_piece = (Piece){
         .piece = pieces[idx],
         .color = idx + 1,
@@ -291,13 +311,13 @@ int run_tetris() {
     fill_white();
     configure_keyboard();
     int i = 0;
-    while (0 && !get_keyboard_event()) { // short circuit because I don't have the keyboard rn
+    while (!get_keyboard_event()) {
         i++;
     }
     mix_random(i);
-    hook_timer(30, draw_frame);
     get_new_piece();
     draw_background();
+    hook_timer(30, draw_frame);
     while (!lose)
         ;
     return score;

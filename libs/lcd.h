@@ -18,6 +18,13 @@
 
 void init_screen(u8 direction);
 void init_lcd_spi(void);
-void setup_dma(void);
+void init_lcd_dma(void);
+
+typedef enum { GPU_ENABLE = 0, GPU_DISABLE = 1, TEXT_SENDING = 2 } LCD_FLAG;
+typedef u8 LCD_STATE;
+
+void set_lcd_flag(LCD_FLAG toset);
+void clear_lcd_flag(LCD_FLAG toclear);
+int check_lcd_flag(LCD_FLAG tocheck);
 
 #endif

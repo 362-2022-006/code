@@ -20,7 +20,7 @@ void init_lcd_spi(void) {
     SPI->CR1 |= SPI_CR1_SPE;
 }
 
-void setup_dma(void) {
+void init_lcd_dma(void) {
     // setup:
     // 16 bit memory and periph
     // no peripheral increment
@@ -34,6 +34,12 @@ void setup_dma(void) {
 
     NVIC_EnableIRQ(DMA1_Ch4_7_DMA2_Ch3_5_IRQn);
 }
+
+volatile LCD_STATE lcd_state;
+
+void set_lcd_flag(LCD_FLAG toset) { lcd_state |= 1 << toset; }
+void clear_lcd_flag(LCD_FLAG toclear) { lcd_state &= ~(1 << toclear); }
+int check_lcd_flag(LCD_FLAG tocheck) { return (lcd_state >> tocheck) & 1; }
 
 // Write to an LCD "register"
 static void LCD_WR_REG(uint8_t data) {

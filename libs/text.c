@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "font.h"
+#include "gpu.h"
 #include "lcd.h"
 #include "types.h"
 
