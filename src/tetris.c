@@ -291,7 +291,7 @@ int run_tetris() {
     fill_white();
     configure_keyboard();
     int i = 0;
-    while (!get_keyboard_event()) {
+    while (0 && !get_keyboard_event()) { // short circuit because I don't have the keyboard rn
         i++;
     }
     mix_random(i);
