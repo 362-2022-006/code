@@ -8,11 +8,11 @@
 #include "tetris.h"
 
 int main() {
-    start_console();
+    // start_console();
 
-    for (;;) {
-        update_console();
-    }
+    // for (;;) {
+    //     update_console();
+    // }
 
     run_tetris();
 
