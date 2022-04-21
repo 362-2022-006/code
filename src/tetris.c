@@ -8,6 +8,9 @@
 #include "random.h"
 #include "types.h"
 
+void handle_rotation(void (*fn)(int, int));
+void draw_next_piece();
+
 const extern u8 white[], black[], red[], green[], yellow[], purple[], orange[], blue[], cyan[];
 const u8 *colors[] = {black, red, green, yellow, purple, orange, blue, cyan};
 
@@ -50,12 +53,41 @@ void draw_background() {
             // 3 bits of color information per tile
             gpu_buffer_add((200 - 16) - j * 16, ypos, colors[(board[i] >> (j * 3)) & 7], 0);
         }
+        gpu_buffer_add(0, ypos, colors[0], 0);
+        gpu_buffer_add(16, ypos, colors[0], 0);
+        gpu_buffer_add(208, ypos, colors[0], 0);
+        gpu_buffer_add(224, ypos, colors[0], 0);
+    }
+    draw_next_piece();
+}
+
+// handle clearing rows
+void update_background() {
+    for (int i = BOARD_HEIGHT; i >= 0; i--) {
+        // iterate through columns
+        int clear = 1;
+        for (int j = 0; j < 30; j += 3) {
+            // iterate through blocks
+            if (!((board[i] >> j) & 7)) {
+                // if no piece, skip rest of row
+                clear = 0;
+                break;
+            }
+        }
+        if (clear) {
+            // row was full, clear it and move others down
+            for (int k = i; k > 0; k--) {
+                board[k] = board[k - 1];
+            }
+            board[0] = 0;
+            i++; // check the row that we just cleared again, stuff was moved down
+        }
     }
 }
 
 typedef struct {
-    u8 x;
-    u8 y;
+    int x;
+    int y;
     u8 piece; // 3x2 grid, bit 6 is reserved for the line
     u8 color;
     u8 rotation;
@@ -63,19 +95,30 @@ typedef struct {
     u8 rotation_style; // 0 --> normal, 1 --> line, 2 --> disabled
 } Piece;
 
-Piece current_piece = {
-    .x = 0,
-    .y = 1,
-    .piece = 0071, // J
-    .color = 2,
-    .rotation = 0,
-    .next_rotation = 0,
-    .rotation_style = 0,
+Piece current_piece;
+Piece next_piece = {
+    .x = -2,
+    .y = 0,
 };
 
 // draws the color of the current piece at the given coordinates
 void draw_piece(int xpos, int ypos) {
     gpu_buffer_add((200 - 16) - (xpos * 16), ypos * 16, colors[current_piece.color], 0);
+}
+
+// draws the next piece at the top right
+void draw_next_piece() {
+    for (int y = 0; y < 2; y++) {
+        for (int x = 0; x < 4; x++) {
+            if (x == 3 && y != 1) // this bit only used for line piece
+                break;
+            else if (x == 3 && y == 1 && !(next_piece.piece >> 6))
+                break;
+            if ((next_piece.piece >> (3 * y + x)) & 1) {
+                gpu_buffer_add((200 - 24) - ((-y - 2) * 16), x * 16, colors[next_piece.color], 0);
+            }
+        }
+    }
 }
 
 // draws black at the given coordinates
@@ -86,30 +129,37 @@ void erase_piece(int xpos, int ypos) {
 void get_new_piece() {
     static int idx = 0;
 
+    if (!next_piece.piece) {
+        idx = get_random() % 7;
+        next_piece = (Piece){
+            .piece = pieces[idx],
+            .color = idx + 1,
+            .rotation = 1,
+            .x = -3,
+            .y = 0,
+        };
+    }
+
     current_piece = (Piece){
-        .piece = pieces[idx],
+        .piece = next_piece.piece,
         .x = 3,
         .y = 0,
-        .color = idx + 1, // color 0 is black
-        .rotation = 4,    // invalid to force immediate draw
+        .color = next_piece.color, // color 0 is black
+        .rotation = 0,
         .next_rotation = 0,
     };
 
     idx = get_random() % 7;
-}
-
-int collision = 0;
-// sets "collision" global variable if the background of given coordinates is not black
-void check_collision(int xpos, int ypos) {
-    if (board[ypos] >> (3 * xpos)) {
-        collision = 1;
-    }
+    next_piece = (Piece){
+        .piece = pieces[idx],
+        .color = idx + 1,
+    };
 }
 
 int invalid_move = 0;
 // sets "invalid_move" global variable if the current position is invalid
 void check_valid_move(int xpos, int ypos) {
-    if (board[ypos] >> (3 * xpos) || xpos < 0 || xpos > 9) {
+    if ((board[ypos] >> (3 * xpos)) & 7 || !(xpos <= 9 && xpos >= 0) || ypos >= BOARD_HEIGHT) {
         invalid_move = 1;
     }
 }
@@ -128,7 +178,7 @@ void handle_rotation(void (*fn)(int, int)) {
                 break;
             else if (x == 3 && y == 1 && !(current_piece.piece >> 6))
                 break;
-            u16 xpos, ypos;
+            int xpos, ypos;
             switch (current_piece.rotation) {
             case 0:
                 xpos = (current_piece.x + x);
@@ -166,11 +216,15 @@ void move_current_piece(int dir) {
         current_piece.x -= dir;
         handle_rotation(erase_piece);
         current_piece.x += dir;
+        handle_rotation(draw_piece);
     }
 }
 
 // rotates current piece (if valid)
 void rotate_current_piece() {
+    if (current_piece.piece == 0033) {
+        return; // square
+    }
     int starting = current_piece.rotation;
     current_piece.rotation = (current_piece.rotation + 1) % 4;
     handle_rotation(check_valid_move);
@@ -180,22 +234,25 @@ void rotate_current_piece() {
     } else {
         current_piece.next_rotation = current_piece.rotation;
         current_piece.rotation = starting;
+        handle_rotation(erase_piece);
+        current_piece.rotation = current_piece.next_rotation;
+        handle_rotation(draw_piece);
     }
 }
 
 void lower_piece() {
     current_piece.y++;
-    handle_rotation(check_collision);
-    if (collision || current_piece.y >= BOARD_HEIGHT - 1) {
-        collision = 0;
+    handle_rotation(check_valid_move);
+    if (invalid_move) {
+        invalid_move = 0;
         current_piece.y--;
         if (current_piece.y == 0) {
             lose = 1;
             unhook_timer();
-            // return;
         }
         handle_rotation(add_to_background);
         get_new_piece();
+        update_background();
         draw_background();
     } else {
         current_piece.y--;
@@ -227,19 +284,20 @@ void draw_frame(void) {
         state = 0;
         lower_piece();
     }
-    if (current_piece.rotation != current_piece.next_rotation) {
-        handle_rotation(erase_piece);
-        current_piece.rotation = current_piece.next_rotation;
-        handle_rotation(draw_piece);
-    }
 }
 
 int run_tetris() {
     init_gpu();
     fill_white();
-    draw_background();
     configure_keyboard();
+    int i = 0;
+    while (!get_keyboard_event()) {
+        i++;
+    }
+    mix_random(i);
     hook_timer(30, draw_frame);
+    get_new_piece();
+    draw_background();
     while (!lose)
         ;
     return score;
