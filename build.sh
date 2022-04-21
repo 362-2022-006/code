@@ -1,10 +1,10 @@
-USER_FILES="src/main.c src/sprites/*.c src/old-lcd.c src/keyboard.c src/console.c"
+USER_FILES="src/main.c src/sprites/*.c src/console.c"
 
 # OPTIMIZE="-Og"
 # OPTIMIZE="-g"
 OPTIMIZE="-O3 -g"
 
-LIB_FILES="libs/*.c libs/*.s"
+LIB_FILES="libs/*.c"
 CORTEX_FLAGS="-mlittle-endian -mthumb -mthumb-interwork -mcpu=cortex-m0 -fsingle-precision-constant"
 CFLAGS="-std=gnu99 -Wall -Wdouble-promotion -Wno-char-subscripts $CORTEX_FLAGS"
 CORTEX_FILES="support/syscalls.c support/startup_stm32.s support/config.c"

@@ -3,44 +3,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "font.h"
 #include "console.h"
+#include "font.h"
 #include "lcd.h"
+#include "types.h"
 
 #define SPI SPI1
 #define DMA DMA2_Channel4
 
 volatile int waste_time = 0;
-
-// #define TESTING_SPI
-void init_lcd_spi(void) {
-    RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
-    GPIOB->MODER &=
-        ~(0x3 << (3 * 2) | 0x3 << (5 * 2) | 0x3 << (8 * 2) | 0x3 << (11 * 2) | 0x3 << (14 * 2));
-    GPIOB->MODER |=
-        0x2 << (3 * 2) | 0x2 << (5 * 2) | 0x1 << (8 * 2) | 0x1 << (11 * 2) | 0x1 << (14 * 2);
-    GPIOB->ODR |= 0x1 << 8 | 0x1 << 11 | 0x1 << 14;
-    GPIOB->AFR[0] &= ~(0xf << (3 * 4) | 0xf << (5 * 4));
-
-    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
-    SPI->CR1 &= ~SPI_CR1_SPE;
-    // SPI->CR1 &= ~SPI_CR1_BR;
-    // SPI->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1;
-    SPI->CR1 |= SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI;
-    SPI->CR2 |= SPI_CR2_DS; // 16 bit
-    SPI->CR1 |= SPI_CR1_SPE;
-}
-
-typedef uint16_t u16;
-typedef uint8_t u8;
-typedef uint32_t u32;
-
-#define DC_HIGH() GPIOB->BSRR = GPIO_BSRR_BS_14;
-#define DC_LOW() GPIOB->BSRR = GPIO_BSRR_BR_14;
-#define RESET_HIGH() GPIOB->BSRR = GPIO_BSRR_BS_11;
-#define RESET_LOW() GPIOB->BSRR = GPIO_BSRR_BR_11;
-#define CS_HIGH() GPIOB->BSRR = GPIO_BSRR_BS_8;
-#define CS_LOW() GPIOB->BSRR = GPIO_BSRR_BR_8;
 
 void start_send(u16 start_x, u16 end_x, u16 start_y, u16 end_y) {
     while (SPI->SR & SPI_SR_BSY)
@@ -508,12 +479,6 @@ fake_putchar_end:
 }
 
 int main() {
-    init_lcd_spi();
-
-    LCD_WriteData16_End();
-    LCD_Init(0, 0, 0);
-    LCD_WriteData16_Prepare();
-
     start_console();
 
     for (;;) {

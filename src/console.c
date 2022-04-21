@@ -2,10 +2,12 @@
 #include <stdio.h>
 
 #include "keyboard.h"
+#include "text.h"
 
 void blank_screen(void); // FIXME: h file
 
 void start_console(void) {
+    init_text();
     blank_screen();
 
     configure_keyboard();
