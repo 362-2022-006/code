@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "console.h"
+#include "tetris.h"
 
 int main() {
     start_console();
@@ -11,6 +12,8 @@ int main() {
     for (;;) {
         update_console();
     }
+
+    run_tetris();
 
     return 0;
 }
