@@ -7,7 +7,11 @@
         "__bit_reference": "c",
         "__string": "c",
         "cstring": "c",
-        "random": "c"
+        "random": "c",
+        "queue": "c",
+        "*.tcc": "c"
     },
-    "C_Cpp.errorSquiggles": "Disabled"
+    "disasexpl.associations": {
+        "**/*.c": "${workspaceFolder}/build/intermediates/${fileBasenameNoExtension}.s"
+    }
 }

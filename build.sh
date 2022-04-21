@@ -11,11 +11,15 @@ CORTEX_FILES="support/syscalls.c support/startup_stm32.s support/config.c"
 FILES="$CORTEX_FILES $USER_FILES $LIB_FILES"
 OPEN_OCD_FLAGS="-f interface/stlink.cfg -f target/stm32f0x.cfg"
 
-mkdir -p ./build/
+mkdir -p ./build/intermediates/
 
-arm-none-eabi-gcc $CFLAGS $OPTIMIZE $FILES -I support/ -I libs/ -T linker-script.ld -o build/main.elf
+arm-none-eabi-gcc -save-temps $CFLAGS $OPTIMIZE $FILES -I support/ -I libs/ -T linker-script.ld -o build/main.elf
 
-if [ $? -eq 0 ]; then
+SUC=$?
+mv *.s build/intermediates
+rm *.o *.i
+
+if [ $SUC -eq 0 ]; then
     arm-none-eabi-objcopy -O binary build/main.elf build/main.bin
     openocd -c "adapter speed 950" $OPEN_OCD_FLAGS -c "program build/main.bin verify reset exit 0x08000000"
 fi
