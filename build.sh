@@ -11,6 +11,8 @@ CORTEX_FILES="support/syscalls.c support/startup_stm32.s support/config.c"
 FILES="$CORTEX_FILES $USER_FILES $LIB_FILES"
 OPEN_OCD_FLAGS="-f interface/stlink.cfg -f target/stm32f0x.cfg"
 
+mkdir -p ./build/
+
 arm-none-eabi-gcc $CFLAGS $OPTIMIZE $FILES -I support/ -I libs/ -T linker-script.ld -o build/main.elf
 
 if [ $? -eq 0 ]; then

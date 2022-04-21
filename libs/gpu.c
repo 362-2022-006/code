@@ -1,6 +1,7 @@
+#include <stm32f0xx.h>
+
 #include "gpu.h"
 #include "lcd.h"
-#include "stm32f0xx.h"
 #include "types.h"
 
 #define DEFAULT_DMA_BUFFER()                                                                       \
