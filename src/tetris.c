@@ -1,8 +1,10 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stm32f0xx.h>
 
 #include "gpu.h"
 #include "hook.h"
+#include "keyboard.h"
 #include "random.h"
 #include "types.h"
 
@@ -24,7 +26,8 @@ const u8 pieces[] = {
 };
 
 // frames between fall
-int rate = 1;
+int rate = 15;
+bool fast_fall = false;
 
 int score = 0;
 volatile int lose = 0;
@@ -205,9 +208,21 @@ void lower_piece() {
 void draw_frame(void) {
     static int state = 0; // frames since last fall
 
-    move_current_piece(1);
+    const KeyEvent *event;
+    while ((event = get_keyboard_event())) {
+        if (event->class == DOWN_ARROW_KEY)
+            fast_fall = event->type != KEY_UP;
+        else if (event->type == KEY_UP)
+            continue;
+        else if (event->class == LEFT_ARROW_KEY)
+            move_current_piece(1);
+        else if (event->class == RIGHT_ARROW_KEY)
+            move_current_piece(-1);
+        else if (event->class == UP_ARROW_KEY)
+            rotate_current_piece();
+    }
 
-    state++;
+    state += fast_fall ? 3 : 1;
     if (state >= rate) {
         state = 0;
         lower_piece();
@@ -223,6 +238,7 @@ int run_tetris() {
     init_gpu();
     fill_white();
     draw_background();
+    configure_keyboard();
     hook_timer(30, draw_frame);
     while (!lose)
         ;

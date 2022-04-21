@@ -25,10 +25,11 @@ void update_console(void) {
     const KeyEvent *event;
     while ((event = get_keyboard_event())) {
         char c = event->value;
+        if (shift_down) {
+            c = get_shifted_key(c);
+        }
         if (control_down) {
             c = get_control_key(c);
-        } else if (shift_down) {
-            c = get_shifted_key(c);
         }
 
         if (event->type == KEY_HELD) {
@@ -52,7 +53,6 @@ void update_console(void) {
                     putchar(' ');
                 }
                 putchar(c);
-                fflush(stdout);
             }
         } else if (event->class == CONTROL_KEY) {
             if (do_print)
@@ -73,15 +73,23 @@ void update_console(void) {
         } else if (event->class == LEFT_ARROW_KEY) {
             if (do_print)
                 printf("Left");
+            else if (event->type == KEY_DOWN)
+                printf("\033[D");
         } else if (event->class == RIGHT_ARROW_KEY) {
             if (do_print)
                 printf("Right");
+            else if (event->type == KEY_DOWN)
+                printf("\033[C");
         } else if (event->class == UP_ARROW_KEY) {
             if (do_print)
                 printf("Up");
+            else if (event->type == KEY_DOWN)
+                printf("\033[A");
         } else if (event->class == DOWN_ARROW_KEY) {
             if (do_print)
                 printf("Down");
+            else if (event->type == KEY_DOWN)
+                printf("\033[B");
         } else {
             if (do_print)
                 printf("Data: 0x%02x", event->class);
@@ -89,5 +97,7 @@ void update_console(void) {
 
         if (do_print)
             puts(event->type == KEY_UP ? " up" : " down");
+
+        fflush(stdout);
     }
 }
