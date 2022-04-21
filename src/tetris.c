@@ -159,6 +159,10 @@ void move_current_piece(int dir) {
     if (invalid_move) {
         invalid_move = 0;
         current_piece.x -= dir;
+    } else {
+        current_piece.x -= dir;
+        handle_rotation(erase_piece);
+        current_piece.x += dir;
     }
 }
 
@@ -201,6 +205,8 @@ void lower_piece() {
 void draw_frame(void) {
     static int state = 0; // frames since last fall
 
+    move_current_piece(1);
+
     state++;
     if (state >= rate) {
         state = 0;
@@ -211,8 +217,6 @@ void draw_frame(void) {
         current_piece.rotation = current_piece.next_rotation;
         handle_rotation(draw_piece);
     }
-
-    // current_piece.next_rotation = (current_piece.rotation + 1) % 4;
 }
 
 int run_tetris() {
