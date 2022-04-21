@@ -1,4 +1,4 @@
-USER_FILES="src/main.c src/sprites/*.c src/console.c"
+USER_FILES="src/*.c src/sprites/*.c"
 
 # OPTIMIZE="-Og"
 # OPTIMIZE="-g"

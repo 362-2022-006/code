@@ -136,4 +136,5 @@ int run_tetris() {
     fill_white();
     draw_background();
     hook_timer(30, draw_frame);
+    return 0;
 }
