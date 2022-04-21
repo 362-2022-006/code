@@ -1,0 +1,37 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        },
+        {
+            "name": "ARM",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/lib/gcc/arm-none-eabi/9.2.1/include",
+                "/usr/lib/gcc/arm-none-eabi/9.2.1/include-fixed",
+                "/usr/lib/gcc/arm-none-eabi/9.2.1/../../../arm-none-eabi/include"
+            ],
+            "defines": [],
+            "macFrameworkPath": [],
+            "compilerPath": "/usr/bin/arm-none-eabi-gcc",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-clang-arm",
+            "compilerArgs": [
+                "-mlittle-endian",
+                "-mthumb",
+                "-mthumb-interwork",
+                "-mcpu=cortex-m0"
+            ]
+        }
+    ],
+    "version": 4
+}

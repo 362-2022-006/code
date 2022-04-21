@@ -1,0 +1,13 @@
+{
+    "cortex-debug.variableUseNaturalFormat": true,
+    "files.associations": {
+        "*.h": "cpp",
+        "*.s": "arm",
+        "sstream": "c",
+        "__bit_reference": "c",
+        "__string": "c",
+        "cstring": "c",
+        "random": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
+}
