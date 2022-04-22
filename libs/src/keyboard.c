@@ -105,9 +105,8 @@ void USART3_4_5_6_7_8_IRQHandler(void) {
             continue;
         } else if (read == 0xE1) {
             // ignore pause/break
-            puts("Pressed pause/break");
             ignore_bytes = 7;
-            continue;
+            events[last_event].class = PAUSE_KEY;
         } else {
             events[last_event].class = read;
         }
