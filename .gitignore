@@ -1,5 +1,9 @@
 build/
 
+helpers/**/*.*
+!helpers/**/*.py
+!helpers/**/*.c
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -4,16 +4,20 @@ USER_FILES="src/*.c src/sprites/tetris-sprites.c"
 # OPTIMIZE="-g"
 OPTIMIZE="-O3 -g"
 
-LIB_FILES="libs/*.c"
 CORTEX_FLAGS="-mlittle-endian -mthumb -mthumb-interwork -mcpu=cortex-m0 -fsingle-precision-constant"
 CFLAGS="-std=gnu99 -Wall -Wdouble-promotion -Wno-char-subscripts $CORTEX_FLAGS"
+
 CORTEX_FILES="support/syscalls.c support/startup_stm32.s support/config.c"
-FILES="$CORTEX_FILES $USER_FILES $LIB_FILES"
+FILES="$CORTEX_FILES $USER_FILES libs/src/*.c"
+
+SAVE_FLAGS="-save-temps -o build/main.elf"
+INCLUDE_FLAGS="-I support/ -I libs/include/"
+
 OPEN_OCD_FLAGS="-f interface/stlink.cfg -f target/stm32f0x.cfg"
 
 mkdir -p ./build/intermediates/
 
-arm-none-eabi-gcc -save-temps $CFLAGS $OPTIMIZE $FILES -I support/ -I libs/ -T linker-script.ld -o build/main.elf
+arm-none-eabi-gcc $CFLAGS $OPTIMIZE $FILES $SAVE_FLAGS $INCLUDE_FLAGS -T linker-script.ld
 
 SUC=$?
 mv *.s build/intermediates
