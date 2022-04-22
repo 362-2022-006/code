@@ -44,6 +44,15 @@ void fill_white() {
             gpu_buffer_add(x, y, white, 0);
 }
 
+void print_to_screen(const char* fstring, u32 number) {
+    set_lcd_flag(TEXT_SENDING);
+    while (!check_lcd_flag(GPU_DISABLE))
+        ;
+    printf(fstring, number);
+    clear_lcd_flag(TEXT_SENDING);
+    reenable_gpu();
+}
+
 // draws background from "board[]" global variable
 void draw_background() {
     // iterate through rows
@@ -62,16 +71,12 @@ void draw_background() {
     }
     draw_next_piece();
 
-    set_lcd_flag(TEXT_SENDING);
-    while (!check_lcd_flag(GPU_DISABLE))
-        ;
-    printf("\033[0;0H\t\t\t\t\t\tCleared: %d\n", score);
-    clear_lcd_flag(TEXT_SENDING);
-    reenable_gpu();
+    print_to_screen("\033[0;0H\t\t\t\t\t\tCleared: %d\n", score);
 }
 
 // handle clearing rows
 void update_background() {
+    int updated = 0;
     for (int i = BOARD_HEIGHT; i >= 0; i--) {
         // iterate through columns
         int clear = 1;
@@ -92,10 +97,14 @@ void update_background() {
             i++; // check the row that we just cleared again, stuff was moved down
             // update score
             score++;
+            updated = 1;
         }
     }
     int temp = STARTING_RATE - 2 * score / 10;
     rate = temp > 0 ? temp : 1;
+    if (updated) {
+        draw_background();
+    }
 }
 
 typedef struct {
@@ -129,6 +138,20 @@ void draw_next_piece() {
                 break;
             if ((next_piece.piece >> (3 * y + x)) & 1) {
                 gpu_buffer_add((200 - 24) - ((-y - 2) * 16), x * 16, colors[next_piece.color], 0);
+            }
+        }
+    }
+}
+
+void erase_next_piece() {
+    for (int y = 0; y < 2; y++) {
+        for (int x = 0; x < 4; x++) {
+            if (x == 3 && y != 1) // this bit only used for line piece
+                break;
+            else if (x == 3 && y == 1 && !(next_piece.piece >> 6))
+                break;
+            if ((next_piece.piece >> (3 * y + x)) & 1) {
+                gpu_buffer_add((200 - 24) - ((-y - 2) * 16), x * 16, colors[0], 0);
             }
         }
     }
@@ -169,7 +192,7 @@ void get_new_piece() {
     } else {
         idx = newidx;
     }
-    
+
     next_piece = (Piece){
         .piece = pieces[idx],
         .color = idx + 1,
@@ -271,9 +294,11 @@ void lower_piece() {
             unhook_timer();
         }
         handle_rotation(add_to_background);
+        erase_next_piece();
         get_new_piece();
+        draw_next_piece();
         update_background();
-        draw_background();
+        // draw_background();
     } else {
         current_piece.y--;
         handle_rotation(erase_piece);
@@ -284,6 +309,9 @@ void lower_piece() {
 
 void draw_frame(void) {
     static int state = 0; // frames since last fall
+
+    // u32 starttime = TIM2->CNT;
+    // print_to_screen("\033[1;0H First: %u\n", starttime);
 
     const KeyEvent *event;
     while ((event = get_keyboard_event())) {
@@ -303,6 +331,9 @@ void draw_frame(void) {
     if (state >= rate) {
         state = 0;
         lower_piece();
+        // print_to_screen("\033[1;0HDiff: %u     \n", starttime - TIM2->CNT);
+        // print_to_screen("\033[2;0H   %%: %.4f     \n", 100 * (float) (starttime - TIM2->CNT) / TIM2->ARR);
+        // // print_to_screen("\033[3;0H   %%: %u     \n", TIM2->ARR);
     }
 }
 
@@ -310,6 +341,7 @@ int run_tetris() {
     init_gpu();
     fill_white();
     configure_keyboard();
+    draw_background();
     int i = 0;
     while (!get_keyboard_event()) {
         i++;
