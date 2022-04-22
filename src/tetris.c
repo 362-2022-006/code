@@ -36,6 +36,9 @@ const u8 pieces[] = {
 int rate = STARTING_RATE;
 bool fast_fall = false;
 
+bool animation = false;
+u32 rows_to_clear = 0;
+
 int score = 0;
 volatile int lose = 0;
 
@@ -65,7 +68,7 @@ void print_to_screen(const char *fstring, u32 number) {
 // draws background from "board[]" global variable
 void draw_background() {
     // iterate through rows
-    for (int i = 0; i < sizeof(board) / sizeof(board[0]); i++) {
+    for (int i = 0; i < BOARD_HEIGHT; i++) {
         u16 ypos = i * 16; // board[0] is at the top of the screen
         // always 10 tiles per row
         for (int j = 0; j < 10; j++) {
@@ -80,8 +83,7 @@ void draw_background() {
 
 // handle clearing rows
 void update_background() {
-    int updated = 0;
-    for (int i = BOARD_HEIGHT; i >= 0; i--) {
+    for (int i = 0; i < BOARD_HEIGHT; i++) {
         // iterate through columns
         int clear = 1;
         for (int j = 0; j < 30; j += 3) {
@@ -99,18 +101,17 @@ void update_background() {
                 board[k] = board[k - 1];
             }
             board[0] = 0;
-            i++; // check the row that we just cleared again, stuff was moved down
 
             // update score
             score++;
-            updated = 1;
+            // updated = 1;
+
+            rows_to_clear |= 1 << i;
+            animation = true;
         }
     }
     int temp = STARTING_RATE - 2 * score / 10;
     rate = temp > 0 ? temp : 1;
-    if (updated) {
-        draw_background();
-    }
 }
 
 typedef struct {
@@ -329,8 +330,7 @@ void tetris_paused(void) {
 
 void draw_frame(void) {
     static int state = 0; // frames since last fall
-
-    u32 starttime = TIM2->CNT;
+    static int animation_state = 4;
 
     const KeyEvent *event;
     while ((event = get_keyboard_event())) {
@@ -349,13 +349,26 @@ void draw_frame(void) {
         }
     }
 
-    state += fast_fall ? 3 : 1;
-    if (state >= rate) {
-        state = 0;
-        lower_piece();
-        print_to_screen("\033[1;0HDiff: %u     \n", starttime - TIM2->CNT);
-        print_to_screen("\033[2;0H   %%: %.4f     \n", ((float) (100 * (starttime - TIM2->CNT))) / TIM2->ARR);
-        // print_to_screen("\033[3;0H   %%: %u     \n", TIM2->ARR);
+    if (animation) {
+        for (int i = 0; i < BOARD_HEIGHT; i++) {
+            if ((rows_to_clear >> i) & 1) {
+                gpu_buffer_add((200 - 16) - (animation_state * 16), i * 16, colors[0], 0);
+                gpu_buffer_add((200 - 16) - ((9 - animation_state) * 16), i * 16, colors[0], 0);
+            }
+        }
+        animation_state--;
+        if (animation_state < 0) {
+            animation_state = 4;
+            animation = false;
+            draw_background();
+            rows_to_clear = 0;
+        }
+    } else {
+        state += fast_fall ? 3 : 1;
+        if (state >= rate) {
+            state = 0;
+            lower_piece();
+        }
     }
 }
 
