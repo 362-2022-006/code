@@ -30,16 +30,20 @@ const u8 pieces[] = {
     0170, // I
 };
 
-#define FRAMERATE 30
+#define FRAMERATE 60
 
-// frames between fall
-#define STARTING_RATE 15
+// frames per fall
+#define STARTING_RATE 48
 int rate = STARTING_RATE;
+// if fast fall, fall every other frame
 bool fast_fall = false;
+// wait delay frames before next input
+int delay = 0;
 
 bool animation = false;
 u32 rows_to_clear = 0;
 
+int cleared = 0;
 int score = 0;
 volatile int end_game = 0;
 
@@ -79,11 +83,13 @@ void draw_background() {
         }
     }
 
-    print_to_screen("\033[48;2;0;0;0m\033[0;28H Cleared: %d         \n", score);
+    print_to_screen("\033[48;2;0;0;0m\033[2;20H   Score: %d    \n", score);
+    print_to_screen("\033[48;2;0;0;0m\033[1;20H Cleared: %d    \n", cleared);
 }
 
 // handle clearing rows
 void update_background() {
+    int num_cleared = 0;
     for (int i = 0; i < BOARD_HEIGHT; i++) {
         // iterate through columns
         int clear = 1;
@@ -103,16 +109,45 @@ void update_background() {
             }
             board[0] = 0;
 
-            // update score
-            score++;
-            // updated = 1;
+            // update cleared
+            // cleared++;
 
             rows_to_clear |= 1 << i;
             animation = true;
         }
+
+        num_cleared += clear;
     }
-    int temp = STARTING_RATE - 2 * score / 10;
-    rate = temp > 0 ? temp : 1;
+
+    switch (num_cleared) {
+    case 4:
+        score += 1200;
+        break;
+    case 3:
+        score += 300;
+        break;
+    case 2:
+        score += 100;
+        break;
+    case 1:
+        score += 40;
+        break;
+    }
+
+    // int temp = STARTING_RATE - 2 * cleared / 10;
+    // rate = temp > 0 ? temp : 1;
+    if (num_cleared + (cleared % 10) > 10) {
+        // increase level
+        if (rate > 8) {
+            rate -= 5;
+        } else if (rate > 6) {
+            rate -= 2;
+        } else if (rate > 1) {
+            rate -= 1;
+        }
+    }
+
+    cleared += num_cleared;
 }
 
 typedef struct {
@@ -205,6 +240,9 @@ void get_new_piece() {
         .piece = pieces[idx],
         .color = idx + 1,
     };
+
+    delay = 12;
+    handle_rotation(draw_piece);
 }
 
 int invalid_move = 0;
@@ -272,12 +310,13 @@ void move_current_piece(int dir) {
 }
 
 // rotates current piece (if valid)
-void rotate_current_piece() {
+// 1 for cw, -1 for ccw
+void rotate_current_piece(int dir) {
     if (current_piece.piece == 0033) {
         return; // square
     }
     int starting = current_piece.rotation;
-    current_piece.rotation = (current_piece.rotation + 1) % 4;
+    current_piece.rotation = (current_piece.rotation + dir) % 4;
     handle_rotation(check_valid_move);
     if (invalid_move) {
         invalid_move = 0;
@@ -291,7 +330,7 @@ void rotate_current_piece() {
     }
 }
 
-void lower_piece() {
+int lower_piece() {
     current_piece.y++;
     handle_rotation(check_valid_move);
     if (invalid_move) {
@@ -310,11 +349,13 @@ void lower_piece() {
 
         update_background();
         draw_next_piece();
+        return 0;
     } else {
         current_piece.y--;
         handle_rotation(erase_piece);
         current_piece.y++;
         handle_rotation(draw_piece);
+        return 1;
     }
 }
 
@@ -323,7 +364,7 @@ void draw_frame(void);
 void tetris_paused(void) {
     const KeyEvent *event;
     while ((event = get_keyboard_event())) {
-        if (event->class == PAUSE_KEY) {
+        if (event->class == PAUSE_KEY || (event->type == KEY_DOWN && event->class == ESCAPE_KEY)) {
             hook_timer(FRAMERATE, draw_frame);
         }
     }
@@ -332,9 +373,10 @@ void tetris_paused(void) {
 void draw_frame(void) {
     static int state = 0; // frames since last fall
     static int animation_state = 4;
+    static int animation_delay = 1;
 
     const KeyEvent *event;
-    while ((event = get_keyboard_event())) {
+    while (!animation && !delay && (event = get_keyboard_event())) {
         if (event->class == DOWN_ARROW_KEY)
             fast_fall = event->type != KEY_UP;
         else if (event->type == KEY_UP)
@@ -343,11 +385,14 @@ void draw_frame(void) {
             move_current_piece(1);
         else if (event->class == RIGHT_ARROW_KEY)
             move_current_piece(-1);
-        else if (event->class == UP_ARROW_KEY)
-            rotate_current_piece();
+        else if (event->class == UP_ARROW_KEY || (event->class == ASCII_KEY && event->value == 'x'))
+            rotate_current_piece(1);
+        else if (event->class == ASCII_KEY && event->value == 'z')
+            rotate_current_piece(-1);
         else if (event->class == ASCII_KEY && event->value == ' ')
-            rotate_current_piece();
-        else if (event->class == PAUSE_KEY)
+            while (lower_piece())
+                ;
+        else if (event->class == PAUSE_KEY || event->class == ESCAPE_KEY)
             hook_timer(5, tetris_paused);
         else if (event->class == ASCII_KEY && event->value == '\t') {
             end_game = 2;
@@ -361,25 +406,34 @@ void draw_frame(void) {
     }
 
     if (animation) {
-        for (int i = 0; i < BOARD_HEIGHT; i++) {
-            if ((rows_to_clear >> i) & 1) {
-                gpu_buffer_add((200 - 16) - (animation_state * 16), i * 16, colors[0], 0);
-                gpu_buffer_add((200 - 16) - ((9 - animation_state) * 16), i * 16, colors[0], 0);
+        if (--animation_delay) {
+            animation_delay = 1;
+            for (int i = 0; i < BOARD_HEIGHT; i++) {
+                if ((rows_to_clear >> i) & 1) {
+                    gpu_buffer_add((200 - 16) - (animation_state * 16), i * 16, colors[0], 0);
+                    gpu_buffer_add((200 - 16) - ((9 - animation_state) * 16), i * 16, colors[0], 0);
+                }
+            }
+            animation_state--;
+            if (animation_state < 0) {
+                animation_state = 4;
+                animation = false;
+                draw_background();
+                rows_to_clear = 0;
             }
         }
-        animation_state--;
-        if (animation_state < 0) {
-            animation_state = 4;
-            animation = false;
-            draw_background();
-            rows_to_clear = 0;
-        }
+    } else if (delay) {
+        delay--;
+        return;
     } else {
-        state += fast_fall ? 3 : 1;
+        if (fast_fall) {
+            state += (rate >> 1) + 1;
+        } else {
+            state += 1;
+        }
         if (state >= rate) {
             state = 0;
             lower_piece();
-            print_to_screen("\033[2;0H%%: %d  \n", 100 - (100 * TIM2->CNT) / (TIM2->ARR + 1));
         }
     }
 }
@@ -425,7 +479,7 @@ run_tetris_start:
         while ((event = get_keyboard_event()))
             if (event->class == ASCII_KEY && event->value == '\t')
                 end_game = 2;
-            else if (event->class == ESCAPE_KEY)
+            else if (event->class == ASCII_KEY && event->value == 'q')
                 end_game = 3;
         asm volatile("wfi");
     }
@@ -433,7 +487,9 @@ run_tetris_start:
     if (end_game == 2) {
         rate = STARTING_RATE;
         fast_fall = false;
+        cleared = 0;
         score = 0;
+        delay = 0;
         end_game = 0;
         memset(board, 0, sizeof board);
 
@@ -446,5 +502,5 @@ run_tetris_start:
         goto run_tetris_start;
     }
 
-    return score;
+    return cleared;
 }
