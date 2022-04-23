@@ -8,7 +8,7 @@ CORTEX_FLAGS="-mlittle-endian -mthumb -mthumb-interwork -mcpu=cortex-m0 -fsingle
 CFLAGS="-std=gnu99 -Wall -Wdouble-promotion -Wno-char-subscripts $CORTEX_FLAGS"
 
 CORTEX_FILES="support/syscalls.c support/startup_stm32.s support/config.c"
-FILES="$CORTEX_FILES $USER_FILES libs/src/*.c"
+FILES="$CORTEX_FILES $USER_FILES libs/src/*.c libs/src/*.s"
 
 SAVE_FLAGS="-save-temps -o build/main.elf"
 INCLUDE_FLAGS="-I support/ -I libs/include/"

@@ -15,6 +15,8 @@ static GPU_FIFO gpu_fifo[GPU_FIFO_SIZE];
 static volatile u8 gpu_fifo_start = 0; // first valid data
 static volatile u8 gpu_fifo_end = 0;   // point to insert data
 
+void DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler(void);
+
 // queues the sprite at "data" to be drawn at "x, y"
 // metadata described in "gpu.h" (0 for 16x16 sprite)
 void gpu_buffer_add(u16 x, u16 y, const u8 *data, u16 meta) {
@@ -92,7 +94,8 @@ void DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler(void) {
     // RESET_LOW;
 
     // nothing left in buffer, disable
-    if (gpu_fifo_start == gpu_fifo_end || check_lcd_flag(TEXT_SENDING) || check_lcd_flag(GPU_DISABLE)) {
+    if (gpu_fifo_start == gpu_fifo_end || check_lcd_flag(TEXT_SENDING) ||
+        check_lcd_flag(GPU_DISABLE)) {
         while (SPI->SR & SPI_SR_BSY)
             ;
         CS_HIGH();
