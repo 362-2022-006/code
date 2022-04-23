@@ -1,4 +1,4 @@
-USER_FILES="src/*.c src/sprites/tetris-sprites.c"
+USER_FILES="src/main.c src/console.c"
 
 # OPTIMIZE="-g"
 # OPTIMIZE="-O3 -g"

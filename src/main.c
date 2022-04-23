@@ -106,6 +106,7 @@ int main() {
 
     if (_do_code()) {
         puts("Error encountered");
+        return 1;
     }
 
     start_console(false);
