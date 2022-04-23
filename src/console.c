@@ -6,14 +6,16 @@
 
 void blank_screen(void); // FIXME: h file
 
-void start_console(void) {
+void start_console(bool prompt) {
     init_text();
     blank_screen();
 
     configure_keyboard();
 
-    printf("> ");
-    fflush(stdout);
+    if (prompt) {
+        printf("> ");
+        fflush(stdout);
+    }
 }
 
 const bool do_print = false;

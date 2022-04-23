@@ -1,25 +1,27 @@
-#ifndef SPI_H
-#define SPI_H
+#ifndef SD_SPI_H
+#define SD_SPI_H
 
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stm32f0xx.h>
 
+#define SD_SPI SPI2
+
 void init_spi(void);
 
 static inline void wait_for_spi(void) {
-    while (SPI1->SR & SPI_SR_BSY)
+    while (SD_SPI->SR & SPI_SR_BSY)
         ;
 }
 static inline uint8_t get_spi(void) {
-    return *((uint8_t *)&SPI1->DR);
+    return *((uint8_t *)&SD_SPI->DR);
 }
 static inline void set_spi(uint8_t byte) {
-    *((uint8_t *)&SPI1->DR) = byte;
+    *((uint8_t *)&SD_SPI->DR) = byte;
 }
 static inline void discard_spi_DR(void) {
-    while (SPI1->SR & SPI_SR_FRLVL) {
-        SPI1->DR;
+    while (SD_SPI->SR & SPI_SR_FRLVL) {
+        SD_SPI->DR;
     }
 }
 

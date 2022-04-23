@@ -4,6 +4,9 @@ import subprocess
 
 function_list = [
     # stdlib
+    '__aeabi_idiv',
+    '__aeabi_uidiv',
+    '__aeabi_uidivmod',
     '_kill',
     '_sbrk',
     '_unlink',

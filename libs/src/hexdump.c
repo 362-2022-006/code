@@ -34,11 +34,11 @@ void hexdump_offset(const void *data, uint32_t offset, uint32_t length) {
                 continue;
             } else if (dup_flag) {
                 dup_flag = false;
-                printf("*\n");
+                puts("*");
             }
         } else if (dup_flag) {
             dup_flag = false;
-            printf("*\n");
+            puts("*");
         }
 
         printf("%08lx  ", offset + r * 16);
@@ -55,10 +55,10 @@ void hexdump_offset(const void *data, uint32_t offset, uint32_t length) {
 
         for (int c = 0; c < chars_in_row; c++)
             _hexdump_print_char(data_int[r * 16 + c]);
-        printf("|\n");
+        puts("|");
     }
     if (dup_flag) {
-        printf("*\n");
+        puts("*");
     }
     printf("%08lx\n", offset + length);
 }

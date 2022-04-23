@@ -18,10 +18,17 @@ void *_sbrk(int incr);
 int _wait(int *status);
 int _unlink(char *name);
 
+void __aeabi_idiv(void);
+void __aeabi_uidiv(void);
+void __aeabi_uidivmod(void);
+
 const static struct {
     char *name;
     void *function;
-} fn_map[] = {{"_kill", _kill},
+} fn_map[] = {{"__aeabi_idiv", __aeabi_idiv},
+              {"__aeabi_uidiv", __aeabi_uidiv},
+              {"__aeabi_uidivmod", __aeabi_uidivmod},
+              {"_kill", _kill},
               {"_sbrk", _sbrk},
               {"_unlink", _unlink},
               {"_wait", _wait},

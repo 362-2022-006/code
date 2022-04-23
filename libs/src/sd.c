@@ -4,7 +4,7 @@
 #include <stm32f0xx.h>
 #include <string.h>
 
-#include "spi.h"
+#include "sd_spi.h"
 
 uint8_t send_cmd_crc(uint8_t cmd, uint32_t arg, uint8_t crc) {
     flush_spi();
@@ -66,7 +66,7 @@ uint32_t send_cmd58(bool idle) {
 
 uint8_t send_acmd(uint8_t cmd, uint32_t arg) {
     if (send_cmd_crc(55, 0x00000000, 0x65) != 0x01) {
-        printf("CMD55 response error\n");
+        puts("CMD55 response error");
         return true;
     }
 
@@ -87,7 +87,7 @@ bool init_sd(void) {
         status = send_cmd_crc(0, 0x00000000, 0x95);
     } while (++count < 250 && status != 0x01);
     if (status != 0x01) {
-        printf("CMD0 response error\n");
+        puts("CMD0 response error");
         return true;
     } else if (count != 1) {
         printf("CMD0 took %d tries\n", count);
@@ -101,7 +101,7 @@ bool init_sd(void) {
     // CMD58 -- read OCR (for valid operating voltage)
     reg = send_cmd58(true);
     if (!(reg & (1 << 20)) || !(reg & (1 << 21))) {
-        printf("Operating voltage error\n");
+        puts("Operating voltage error");
     }
 
     // ACMD41 -- send host capacity support information (also activate initialization)
@@ -112,7 +112,7 @@ bool init_sd(void) {
             break;
     } while (count++ < 250);
     if (status != 0) {
-        printf("ACMD41 error\n");
+        puts("ACMD41 error");
         return true;
     } else {
         printf("ACMD41 success, %d attempts\n", count);
@@ -121,13 +121,13 @@ bool init_sd(void) {
     // CMD58 -- read OCR (for card capacity status)
     reg = send_cmd58(false);
     if (!(reg & (1 << 31))) {
-        printf("Power up routine not finshed? Error.\n");
+        puts("Power up routine not finshed? Error.");
         return true;
     }
     if (reg & (1 << 30)) {
-        printf("High capacity or extended capacity card identified\n");
+        puts("High capacity or extended capacity card identified");
     } else {
-        printf("Standard capacity card identified\n");
+        puts("Standard capacity card identified");
         return true;
     }
 
@@ -170,7 +170,7 @@ bool read_cid(struct CID *cid) {
 }
 
 void print_cid(const struct CID *cid) {
-    printf("CID\n");
+    puts("CID");
     printf("\tMID: 0x%02x\n", cid->MID);
     printf("\tOID: %s\n", cid->OID);
     printf("\tPNM: %s\n", cid->PNM);
@@ -249,7 +249,7 @@ bool read_csd(struct CSD *csd) {
 }
 
 void print_csd(const struct CSD *csd) {
-    printf("CSD\n");
+    puts("CSD");
 
     int time_unit = csd->TAAC & 0b111;
     int time = time_unit % 3 == 2 ? 100 : time_unit % 3 == 1 ? 10 : 1;
@@ -281,7 +281,7 @@ void print_csd(const struct CSD *csd) {
 
 bool read_sector(uint8_t *buf, uint32_t sector) {
     if (send_cmd(17, sector) != 0) {
-        printf("CMD17 error\n");
+        puts("CMD17 error");
         return true;
     }
 
@@ -291,7 +291,7 @@ bool read_sector(uint8_t *buf, uint32_t sector) {
     } while (received == 0xFF);
 
     if (received != 0xFE) {
-        printf("Block read error\n");
+        puts("Block read error");
         return true;
     }
 
@@ -308,7 +308,7 @@ bool read_sector(uint8_t *buf, uint32_t sector) {
 
 bool write_sector(uint8_t *buf, uint32_t sector) {
     if (send_cmd(24, sector) != 0) {
-        printf("CMD24 error\n");
+        puts("CMD24 error");
         return true;
     }
 
@@ -348,10 +348,10 @@ void DMA1_CH2_3_DMA2_CH1_2_IRQHandler(void) {
     } else {
         *dma_complete_flag = true;
         DMA1_Channel2->CCR &= ~DMA_CCR_EN;
-        SPI1->CR1 &= ~SPI_CR1_SPE;
+        SD_SPI->CR1 &= ~SPI_CR1_SPE;
         wait_for_spi();
-        SPI1->CR1 &= ~SPI_CR1_RXONLY;
-        SPI1->CR1 |= SPI_CR1_SPE;
+        SD_SPI->CR1 &= ~SPI_CR1_RXONLY;
+        SD_SPI->CR1 |= SPI_CR1_SPE;
         discard_spi_DR();
     }
 
@@ -363,7 +363,7 @@ bool read_sector_dma(uint8_t *buf, uint32_t sector, volatile bool *done) {
         ;
 
     if (send_cmd(17, sector) != 0) {
-        printf("CMD17 error\n");
+        puts("CMD17 error");
         return true;
     }
 
@@ -381,14 +381,14 @@ bool read_sector_dma(uint8_t *buf, uint32_t sector, volatile bool *done) {
     }
 
     if (received != 0xFE) {
-        printf("Block read error\n");
+        puts("Block read error");
         return true;
     }
 
-    SPI1->CR1 &= ~SPI_CR1_SPE;
-    SPI1->CR1 |= SPI_CR1_RXONLY;
+    SD_SPI->CR1 &= ~SPI_CR1_SPE;
+    SD_SPI->CR1 |= SPI_CR1_RXONLY;
     DMA1_Channel2->CCR |= DMA_CCR_EN;
-    SPI1->CR1 |= SPI_CR1_SPE;
+    SD_SPI->CR1 |= SPI_CR1_SPE;
 
     return false;
 }

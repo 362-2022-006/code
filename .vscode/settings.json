@@ -9,7 +9,8 @@
         "cstring": "c",
         "random": "c",
         "queue": "c",
-        "*.tcc": "c"
+        "*.tcc": "c",
+        "system_error": "c"
     },
     "disasexpl.associations": {
         "**/*.c": "${workspaceFolder}/build/intermediates/${fileBasenameNoExtension}.s"

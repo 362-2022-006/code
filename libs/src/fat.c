@@ -5,7 +5,7 @@
 
 #include "hexdump.h"
 #include "sd.h"
-#include "spi.h"
+#include "sd_spi.h"
 
 bool init_fat(struct FATParameters *params, uint8_t sd_buffer[512]) {
     if (init_sd()) {
@@ -32,7 +32,7 @@ bool find_fat_parameters(struct FATParameters *params, uint8_t sd_buffer[512]) {
         return true;
     }
     if (sd_buffer[510] != 0x55 || sd_buffer[511] != 0xAA) {
-        printf("FAT boot sector has wrong ending\n");
+        puts("FAT boot sector has wrong ending");
         return true;
     }
 
@@ -47,12 +47,12 @@ bool find_fat_parameters(struct FATParameters *params, uint8_t sd_buffer[512]) {
 
     memcpy(&buffer_32, sd_buffer + 17, 4);
     if (buffer_32 != 0) {
-        printf("Root entry count and 16 bit total sectors should be zero on FAT32\n");
+        puts("Root entry count and 16 bit total sectors should be zero on FAT32");
         return true;
     }
     memcpy(&buffer_16, sd_buffer + 22, 2);
     if (buffer_16 != 0) {
-        printf("16 bit one FAT sectors should be zero on FAT32\n");
+        puts("16 bit one FAT sectors should be zero on FAT32");
         return true;
     }
 
@@ -63,7 +63,7 @@ bool find_fat_parameters(struct FATParameters *params, uint8_t sd_buffer[512]) {
     params->mirroring_enabled = sd_buffer[40] & 0x80;
 
     if (sd_buffer[42] || sd_buffer[43]) {
-        printf("Invalid FAT version\n");
+        puts("Invalid FAT version");
         return true;
     }
 
@@ -76,7 +76,7 @@ bool find_fat_parameters(struct FATParameters *params, uint8_t sd_buffer[512]) {
 }
 
 void print_fat_params(const struct FATParameters *params) {
-    printf("FAT Parameters:\n");
+    puts("FAT Parameters:");
 
     printf("\tPartitition at sector %ld with length %ld,%03ld MiB\n", params->first_sector,
            params->length_sectors / 2048 / 1000, (params->length_sectors / 2048) % 1000);
@@ -148,7 +148,7 @@ int get_file_next_sector(const struct FATParameters *params, struct FATFile *fil
                          uint8_t buffer[512]) {
     uint32_t sector = file_get_sector(params, file);
     if (read_sector(buffer, sector)) {
-        printf("Get file read sector error\n");
+        puts("Get file read sector error");
         return -1;
     }
 
@@ -193,7 +193,7 @@ struct DIREntry {
 
 void ls(const struct FATParameters *params, struct FATFile *file, uint8_t sd_buffer[512]) {
     if (!file->directory) {
-        printf("LS ON FILE!\n");
+        puts("LS ON FILE!");
         return;
     }
 
@@ -433,7 +433,7 @@ uint32_t _get_open_cluster(const struct FATParameters *params, uint32_t previous
 void new_file(const struct FATParameters *params, struct FATFile *file, const char *name,
               const char *ext, bool dir, uint8_t sd_buffer[512]) {
     if (!file->directory) {
-        printf("WRITE ON FILE!\n");
+        puts("WRITE ON FILE!");
         return;
     }
 
