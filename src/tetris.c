@@ -58,6 +58,13 @@ void init_background() {
         gpu_buffer_add(16, y, colors[0], 0);
         gpu_buffer_add(208, y, colors[0], 0);
         gpu_buffer_add(224, y, colors[0], 0);
+
+        gpu_buffer_add(136, 0, colors[0], 0);
+        gpu_buffer_add(120, 0, colors[0], 0);
+        gpu_buffer_add(104, 0, colors[0], 0);
+        gpu_buffer_add(104, 16, colors[0], 0);
+        gpu_buffer_add(120, 16, colors[0], 0);
+        gpu_buffer_add(136, 16, colors[0], 0);
     }
 }
 
@@ -154,7 +161,6 @@ typedef struct {
     u8 piece; // 3x2 grid, bit 6 is reserved for the line
     u8 color;
     u8 rotation;
-    u8 next_rotation;
     u8 rotation_style; // 0 --> normal, 1 --> line, 2 --> disabled
 } Piece;
 
@@ -220,11 +226,11 @@ void get_new_piece() {
 
     current_piece = (Piece){
         .piece = next_piece.piece,
+        // .piece = 0170,
         .x = 3,
         .y = 0,
         .color = next_piece.color, // color 0 is black
         .rotation = 0,
-        .next_rotation = 0,
     };
 
     newidx = get_random() % 7;
@@ -246,7 +252,7 @@ void get_new_piece() {
 int invalid_move = 0;
 // sets "invalid_move" global variable if the current position is invalid
 void check_valid_move(int xpos, int ypos) {
-    if ((board[ypos] >> (3 * xpos)) & 7 || !(xpos <= 9 && xpos >= 0) || ypos >= BOARD_HEIGHT) {
+    if (!(xpos <= 9 && xpos >= 0) || ypos >= BOARD_HEIGHT || (board[ypos] >> (3 * xpos)) & 7) {
         invalid_move = 1;
     }
 }
@@ -310,22 +316,179 @@ void move_current_piece(int dir) {
 // rotates current piece (if valid)
 // 1 for cw, -1 for ccw
 void rotate_current_piece(int dir) {
+
+    // for SRS
+    int xadd = 0;
+    int yadd = 0;
+
     if (current_piece.piece == 0033) {
         return; // square
+    } else if (current_piece.piece == 0170) {
+        // line
+        switch (current_piece.rotation) {
+        case 0:
+            if (dir == 1) {
+                current_piece.y++;
+                yadd++;
+            } else {
+                current_piece.x++;
+                xadd++;
+            }
+            break;
+        case 1:
+            if (dir == 1) {
+                current_piece.x++;
+                xadd++;
+            } else {
+                current_piece.y--;
+                yadd--;
+            }
+            break;
+        case 2:
+            if (dir == 1) {
+                current_piece.y--;
+                yadd--;
+            } else {
+                current_piece.x --;
+                xadd--;
+            }
+            break;
+        case 3:
+        default:
+            if (dir == 1) {
+                current_piece.x--;
+                xadd--;
+            } else {
+                current_piece.y++;
+                yadd++;
+            }
+        }
     }
+
     int starting = current_piece.rotation;
     current_piece.rotation = (current_piece.rotation + dir) % 4;
+
     handle_rotation(check_valid_move);
+
     if (invalid_move) {
         invalid_move = 0;
-        current_piece.rotation = starting;
-    } else {
-        current_piece.next_rotation = current_piece.rotation;
-        current_piece.rotation = starting;
-        handle_rotation(erase_piece);
-        current_piece.rotation = current_piece.next_rotation;
-        handle_rotation(draw_piece);
+
+        // try the SRS wall kick options, break on first valid
+        // or return if all invalid
+        switch (current_piece.piece) {
+        case 0170:
+            // int xstart;
+            // int ystart;
+            // int
+            // +1
+            invalid_move = 0;
+            current_piece.x += 1;
+            handle_rotation(check_valid_move);
+            if (!invalid_move) {
+                xadd += 1;
+                break;
+            }
+
+            // -1
+            invalid_move = 0;
+            current_piece.x -= 2;
+            handle_rotation(check_valid_move);
+            if (!invalid_move) {
+                xadd -= 1;
+                break;
+            }
+
+            // +2
+            invalid_move = 0;
+            current_piece.x += 3;
+            handle_rotation(check_valid_move);
+            if (!invalid_move) {
+                xadd += 2;
+                break;
+            }
+
+            // -2
+            invalid_move = 0;
+            current_piece.x -= 4;
+            handle_rotation(check_valid_move);
+            if (!invalid_move) {
+                xadd -= 2;
+                break;
+            }
+
+            // invalid move, reset and do nothing
+            invalid_move = 0;
+            current_piece.rotation = starting;
+            current_piece.x += 3;
+            return;
+        default: { // everything except line (and square)
+            int scaling;
+            if (starting == 1) {
+                scaling = -1;
+            } else if (starting == 3) {
+                scaling = 1;
+            } else if (starting == 0) {
+                scaling = dir;
+            } else {
+                scaling = -dir;
+            }
+
+            invalid_move = 0;
+            current_piece.x += scaling;
+            handle_rotation(check_valid_move);
+            if (!invalid_move) {
+                xadd = scaling;
+                break;
+            }
+
+            invalid_move = 0;
+            current_piece.y -= scaling;
+            handle_rotation(check_valid_move);
+            if (!invalid_move) {
+                xadd = scaling;
+                yadd = -scaling;
+                break;
+            }
+
+            invalid_move = 0;
+            current_piece.x -= scaling;
+            current_piece.y += 3 * scaling;
+            handle_rotation(check_valid_move);
+            if (!invalid_move) {
+                yadd = 2 * scaling;
+                break;
+            }
+
+            invalid_move = 0;
+            current_piece.x += scaling;
+            handle_rotation(check_valid_move);
+            if (!invalid_move) {
+                xadd = scaling;
+                yadd = -2 * scaling;
+                break;
+            }
+
+            // invalid move, reset and do nothing
+            invalid_move = 0;
+            current_piece.rotation = starting;
+            current_piece.x -= scaling;
+            current_piece.y -= 2 * scaling;
+            return;
+        }
+        }
     }
+
+    // valid move, erase and draw
+    int next_rotation = current_piece.rotation;
+    current_piece.rotation = starting;
+    current_piece.x -= xadd;
+    current_piece.y -= yadd;
+    handle_rotation(erase_piece);
+
+    current_piece.rotation = next_rotation;
+    current_piece.x += xadd;
+    current_piece.y += yadd;
+    handle_rotation(draw_piece);
 }
 
 int lower_piece() {
