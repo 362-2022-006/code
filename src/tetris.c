@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stm32f0xx.h>
+#include <string.h>
 
 #include "gpu.h"
 #include "hook.h"
@@ -40,7 +41,7 @@ bool animation = false;
 u32 rows_to_clear = 0;
 
 int score = 0;
-volatile int lose = 0;
+volatile int end_game = 0;
 
 // fills the screen with white, adds black border
 void init_background() {
@@ -298,7 +299,7 @@ void lower_piece() {
 
         current_piece.y--;
         if (current_piece.y == 0) {
-            lose = 1;
+            end_game = 1;
             unhook_timer();
         }
 
@@ -344,8 +345,18 @@ void draw_frame(void) {
             move_current_piece(-1);
         else if (event->class == UP_ARROW_KEY)
             rotate_current_piece();
-        else if (event->class == PAUSE_KEY) {
+        else if (event->class == ASCII_KEY && event->value == ' ')
+            rotate_current_piece();
+        else if (event->class == PAUSE_KEY)
             hook_timer(5, tetris_paused);
+        else if (event->class == ASCII_KEY && event->value == '\t') {
+            end_game = 2;
+            unhook_timer();
+            return;
+        } else if (event->class == ESCAPE_KEY) {
+            end_game = 3;
+            unhook_timer();
+            return;
         }
     }
 
@@ -368,6 +379,25 @@ void draw_frame(void) {
         if (state >= rate) {
             state = 0;
             lower_piece();
+            print_to_screen("\033[2;0H%%: %d  \n", 100 - (100 * TIM2->CNT) / (TIM2->ARR + 1));
+        }
+    }
+}
+
+inline static void _wait_for_key_press(void) {
+    int state = 0;
+    const KeyEvent *event;
+    for (int i = 0;; i++) {
+        while ((event = get_keyboard_event())) {
+            // try to get as much entropy as possible
+            mix_random(((u32)event->value << 18) ^ ((u32)event->class << 8) ^ event->type);
+            mix_random(i);
+
+            if (event->type == KEY_DOWN) {
+                state = 1;
+            } else if (event->type == KEY_UP && state) {
+                return;
+            }
         }
     }
 }
@@ -378,18 +408,43 @@ int run_tetris() {
     draw_background();
 
     configure_keyboard();
-    int i = 0;
-    while (!get_keyboard_event())
-        i++;
-    mix_random(i);
+
+run_tetris_start:
+    _wait_for_key_press();
 
     get_new_piece();
     draw_next_piece();
 
     hook_timer(FRAMERATE, draw_frame);
 
-    while (!lose)
+    while (!end_game)
         asm volatile("wfi");
+
+    const KeyEvent *event;
+    while (end_game == 1) {
+        while ((event = get_keyboard_event()))
+            if (event->class == ASCII_KEY && event->value == '\t')
+                end_game = 2;
+            else if (event->class == ESCAPE_KEY)
+                end_game = 3;
+        asm volatile("wfi");
+    }
+
+    if (end_game == 2) {
+        rate = STARTING_RATE;
+        fast_fall = false;
+        score = 0;
+        end_game = 0;
+        memset(board, 0, sizeof board);
+
+        init_gpu();
+        init_background();
+        draw_background();
+
+        mix_random(0xdecafbad); // totally random
+
+        goto run_tetris_start;
+    }
 
     return score;
 }
