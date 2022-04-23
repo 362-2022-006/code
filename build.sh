@@ -2,7 +2,8 @@ USER_FILES="src/*.c src/sprites/tetris-sprites.c"
 
 # OPTIMIZE="-Og"
 # OPTIMIZE="-g"
-OPTIMIZE="-O3 -g"
+# OPTIMIZE="-O3 -g"
+OPTIMIZE="-Os -g"
 
 CORTEX_FLAGS="-mlittle-endian -mthumb -mthumb-interwork -mcpu=cortex-m0 -fsingle-precision-constant"
 CFLAGS="-std=gnu99 -Wall -Wdouble-promotion -Wno-char-subscripts $CORTEX_FLAGS"

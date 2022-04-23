@@ -79,12 +79,13 @@ void draw_background() {
         for (int j = 0; j < 10; j++) {
             // msb describes leftmost tile
             // 3 bits of color information per tile
-            gpu_buffer_add((200 - 16) - j * 16, ypos, colors[(board[i] >> (j * 3)) & 7], 0);
+            if (i > 1 || !(j > 2 && j < 6))
+                gpu_buffer_add((200 - 16) - j * 16, ypos, colors[(board[i] >> (j * 3)) & 7], 0);
         }
     }
 
-    print_to_screen("\033[48;2;0;0;0m\033[2;20H   Score: %d    \n", score);
-    print_to_screen("\033[48;2;0;0;0m\033[1;20H Cleared: %d    \n", cleared);
+    print_to_screen("\033[48;2;0;0;0m\033[2;20H   Score: %5d\n", score);
+    print_to_screen("\033[48;2;0;0;0m\033[1;20H Cleared:   %3d\n", cleared);
 }
 
 // handle clearing rows
@@ -108,9 +109,6 @@ void update_background() {
                 board[k] = board[k - 1];
             }
             board[0] = 0;
-
-            // update cleared
-            // cleared++;
 
             rows_to_clear |= 1 << i;
             animation = true;
@@ -419,6 +417,7 @@ void draw_frame(void) {
                 animation_state = 4;
                 animation = false;
                 draw_background();
+                handle_rotation(draw_piece);
                 rows_to_clear = 0;
             }
         }
@@ -434,6 +433,8 @@ void draw_frame(void) {
         if (state >= rate) {
             state = 0;
             lower_piece();
+            print_to_screen("\033[48;2;0;0;0m\033[1;0H CPU: %4d\n",
+                            1000 - (1000 * TIM2->CNT) / TIM2->ARR);
         }
     }
 }
