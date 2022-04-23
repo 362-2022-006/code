@@ -3,6 +3,7 @@
 
 enum EventClass {
     ASCII_KEY,
+    PAUSE_KEY,
     LSHIFT_KEY = 0x12,
     RSHIFT_KEY = 0x59,
     CONTROL_KEY = 0x14,

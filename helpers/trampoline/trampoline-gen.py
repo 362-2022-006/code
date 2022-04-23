@@ -5,8 +5,10 @@ import subprocess
 function_list = [
     # stdlib
     '__aeabi_idiv',
+    '__aeabi_idivmod',
     '__aeabi_uidiv',
     '__aeabi_uidivmod',
+    '__gnu_thumb1_case_uqi',
     '_kill',
     '_sbrk',
     '_unlink',

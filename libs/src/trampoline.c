@@ -21,13 +21,17 @@ int _unlink(char *name);
 void __aeabi_idiv(void);
 void __aeabi_uidiv(void);
 void __aeabi_uidivmod(void);
+void __aeabi_idivmod(void);
+void __gnu_thumb1_case_uqi(void);
 
 const static struct {
     char *name;
     void *function;
 } fn_map[] = {{"__aeabi_idiv", __aeabi_idiv},
+              {"__aeabi_idivmod", __aeabi_idivmod},
               {"__aeabi_uidiv", __aeabi_uidiv},
               {"__aeabi_uidivmod", __aeabi_uidivmod},
+              {"__gnu_thumb1_case_uqi", __gnu_thumb1_case_uqi},
               {"_kill", _kill},
               {"_sbrk", _sbrk},
               {"_unlink", _unlink},
