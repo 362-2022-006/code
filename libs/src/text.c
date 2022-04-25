@@ -4,18 +4,27 @@
 
 #include "font.h"
 #include "gpu.h"
+#include "keyboard.h"
 #include "lcd.h"
 #include "types.h"
 
 #define SPI SPI1
 #define DMA DMA2_Channel4
 
-void init_text() {
-    init_lcd_spi();
-    SPI->CR2 &= ~SPI_CR2_TXDMAEN;
+#define COLUMNS 39
+#define LINES 35
 
-    init_screen(3);
-}
+u16 *const start_line = (u16 *)0x200001FA;
+int16_t *const current_line_buffer = (int16_t *)0x200001FC;
+int16_t *const current_column_buffer = (int16_t *)0x200001FE;
+char *const screen_buffer = (char *)0x20000200;
+
+static bool use_buffer = true;
+static int16_t current_line_temp = 0;
+static int16_t current_column_temp = 0;
+
+static int16_t *current_line;
+static int16_t *current_column;
 
 void start_send(u16 start_x, u16 end_x, u16 start_y, u16 end_y) {
     while (SPI->SR & SPI_SR_BSY)
@@ -172,9 +181,6 @@ void blank_line_to_line(int start_line, int end_line) {
     CS_HIGH();
 }
 
-#define COL_MAX 38
-#define LINE_MAX 34
-
 static u16 _get_color(u16 *color, const u8 *params, bool foreground) {
     if (*params == 2) {
         *color = ((params[1] & 0xf8) << 8) | ((params[2] & 0xfc) << 3) | (params[3] >> 3);
@@ -204,7 +210,7 @@ void scroll_screen(int lines) {
     if (current_scroll < 0) {
         current_scroll += 320;
     }
-    if (lines > LINE_MAX || lines < -LINE_MAX) {
+    if (lines >= LINES || lines <= -LINES) {
         current_scroll = 0;
     }
     u16 write_val = 320 - ((current_scroll * 9) % 320);
@@ -224,10 +230,10 @@ void scroll_screen(int lines) {
     CS_HIGH();
 
     if (lines > 0) {
-        blank_line_to_line(LINE_MAX - (int)lines + 1, LINE_MAX + 1);
+        blank_line_to_line(LINES - (int)lines, LINES);
     } else {
         blank_line_to_line(0, -lines);
-        blank_line_to_line(LINE_MAX + 1, LINE_MAX + 1);
+        blank_line_to_line(LINES, LINES);
     }
 }
 
@@ -252,6 +258,11 @@ static inline void _write_char(char c, u16 line, u16 col, u16 f_color, u16 b_col
                 ;
             SPI->DR = printchar;
         }
+    }
+
+    if (use_buffer) {
+        int location = (*start_line + line) % LINES * COLUMNS + col;
+        screen_buffer[location] = c + 0x20;
     }
 
     while (SPI->SR & SPI_SR_BSY)
@@ -281,14 +292,12 @@ static inline void _write_char(char c, u16 line, u16 col, u16 f_color, u16 b_col
     CS_HIGH();
 }
 
+static u8 vline_breaks = 0;
+
+static u16 f_color = DEFAULT_FOREGROUND;
+static u16 b_color = DEFAULT_BACKGROUND;
+
 void __io_putchar(unsigned char c) {
-    static int16_t line = 0;
-    static int16_t col = 0;
-    static u8 vline_breaks = 0;
-
-    static u16 f_color = DEFAULT_FOREGROUND;
-    static u16 b_color = DEFAULT_BACKGROUND;
-
     static u8 escape_state = 0;
     static u8 escape_index = 0;
     static u8 escape_num[8] = {0};
@@ -350,25 +359,27 @@ void __io_putchar(unsigned char c) {
                     if (escape_state < 3) {
                         escape_num[0] = 1;
                     }
-                    line = (c == 'A' || c == 'F') ? line - escape_num[0] : line + escape_num[0];
+                    *current_line = (c == 'A' || c == 'F') ? *current_line - escape_num[0]
+                                                           : *current_line + escape_num[0];
                     if (c == 'E' || c == 'F')
-                        col = 0;
+                        *current_column = 0;
                 }
-                goto fake_putchar_end_escape;
+                goto fake_putchar_end_escape_movement;
             } else if (c == 'C' || c == 'D') {
                 if (escape_index == 0) {
                     if (escape_state < 3) {
                         escape_num[0] = 1;
                     }
-                    col = c == 'D' ? col - escape_num[0] : col + escape_num[0];
+                    *current_column = c == 'D' ? *current_column - escape_num[0]
+                                               : *current_column + escape_num[0];
                 }
-                goto fake_putchar_end_escape;
+                goto fake_putchar_end_escape_movement;
             } else if (c == 'G') {
                 if (escape_state < 3) {
                     escape_num[0] = 1;
                 }
-                col = escape_num[0] - 1;
-                goto fake_putchar_end_escape;
+                *current_column = escape_num[0] - 1;
+                goto fake_putchar_end_escape_movement;
             } else if (c == 'H' || c == 'f') {
                 if (escape_state < 3) {
                     escape_num[escape_index] = 1;
@@ -376,32 +387,32 @@ void __io_putchar(unsigned char c) {
                 if (escape_index == 0) {
                     escape_num[1] = 1;
                 }
-                line = escape_num[0] - 1;
-                col = escape_num[1] - 1;
-                goto fake_putchar_end_escape;
+                *current_line = escape_num[0] - 1;
+                *current_column = escape_num[1] - 1;
+                goto fake_putchar_end_escape_movement;
             } else if (c == 'J' || c == 'K') {
                 if (escape_num[0] == 2) {
                     if (c == 'J')
                         blank_screen();
                     else {
                         u16 color = _lookup_color(0, false);
-                        for (int i = 0; i <= COL_MAX; i++)
-                            _write_char(' ', line, i, 0, color);
+                        for (int i = 0; i < COLUMNS; i++)
+                            _write_char(' ', *current_line, i, 0, color);
                     }
                 } else if (escape_num[0] == 0) {
                     u16 color = _lookup_color(0, false);
-                    for (int i = col; i <= COL_MAX; i++) {
-                        _write_char(' ', line, i, 0, color);
+                    for (int i = *current_column; i < COLUMNS; i++) {
+                        _write_char(' ', *current_line, i, 0, color);
                     }
                     if (c == 'J')
-                        blank_line_to_line(line + 1, LINE_MAX);
+                        blank_line_to_line(*current_line + 1, LINES - 1);
                 } else if (escape_num[0] == 1) {
                     u16 color = _lookup_color(0, false);
-                    for (int i = 0; i < col; i++) {
-                        _write_char(' ', line, i, 0, color);
+                    for (int i = 0; i < *current_column; i++) {
+                        _write_char(' ', *current_line, i, 0, color);
                     }
                     if (c == 'J')
-                        blank_line_to_line(0, line - 1);
+                        blank_line_to_line(0, *current_line - 1);
                 }
                 goto fake_putchar_end_escape;
             } else if (c == 'S' || c == 'T') {
@@ -416,35 +427,38 @@ void __io_putchar(unsigned char c) {
             }
         }
         goto fake_putchar_end;
+
+    fake_putchar_end_escape_movement:
+        vline_breaks = 0;
     fake_putchar_end_escape:
         escape_state = 0;
         escape_index = 0;
         memset(escape_num, 0, sizeof escape_num);
     } else {
         if (c >= 0x20) {
-            _write_char(c, line, col, f_color, b_color);
-            col++;
+            _write_char(c, *current_line, *current_column, f_color, b_color);
+            ++*current_column;
         } else {
             // control character
             switch (c) {
             case '\n':
-                col = 0;
-                line++;
+                *current_column = 0;
+                ++*current_line;
                 vline_breaks = 0;
                 break;
             case '\r':
-                col = 0;
+                *current_column = 0;
                 break;
             case '\b':
-                col--;
+                --*current_column;
                 break;
             case '\t':
-                col += 4;
-                col &= ~3;
+                *current_column += 4;
+                *current_column &= ~3;
                 break;
             case '\v':
             case '\f':
-                line++;
+                ++*current_line;
                 vline_breaks = 0;
                 break;
             case '\033':
@@ -455,24 +469,96 @@ void __io_putchar(unsigned char c) {
     }
 
 fake_putchar_end:
-    if (col < 0) {
+    if (*current_column < 0) {
         if (vline_breaks) {
-            col += COL_MAX + 1;
-            line--;
+            *current_column += COLUMNS;
+            --*current_line;
             vline_breaks--;
         } else {
-            col = 0;
+            *current_column = 0;
         }
-    } else if (col > COL_MAX) {
-        col = 0;
-        line++;
+    } else if (*current_column >= COLUMNS) {
+        *current_column = 0;
+        ++*current_line;
         vline_breaks++;
     }
 
-    if (line < 0) {
-        line = 0;
-    } else if (line > LINE_MAX) {
-        scroll_screen(line - LINE_MAX);
-        line = LINE_MAX;
+    if (*current_line < 0) {
+        *current_line = 0;
+    } else if (*current_line >= LINES) {
+        scroll_screen(1 + *current_line - LINES);
+        *current_line = LINES - 1;
+
+        memset(screen_buffer + *start_line * COLUMNS, 0, COLUMNS);
+        *start_line = (*start_line + 1) % LINES;
     }
+}
+
+void set_screen_text_buffer(bool on) {
+    use_buffer = on;
+    current_line = use_buffer ? current_line_buffer : &current_line_temp;
+    current_column = use_buffer ? current_column_buffer : &current_column_temp;
+}
+
+void init_text(bool use_buffer) {
+    init_lcd_spi();
+    SPI->CR2 &= ~SPI_CR2_TXDMAEN;
+
+    set_screen_text_buffer(use_buffer);
+
+    init_screen(3);
+    blank_screen();
+
+    bool on_first_line = true;
+    for (int line = *start_line; line != *start_line || on_first_line; line = (line + 1) % LINES) {
+        for (int col = 0; col < COLUMNS; col++) {
+            char c = screen_buffer[(line + *start_line) % LINES * COLUMNS + col];
+            if (c)
+                _write_char(c, line, col, DEFAULT_FOREGROUND, DEFAULT_BACKGROUND);
+        }
+        on_first_line = false;
+    }
+}
+
+u16 get_current_line(void) { return *current_line; }
+
+u16 get_current_column(void) { return *current_column; }
+
+unsigned char __io_getchar(void) {
+    static bool found_newline = false;
+
+    static char buffer[122];
+    static int8_t buffer_write_pos = -1, buffer_read_pos = 0;
+
+    while (!found_newline) {
+        char c = get_keyboard_character();
+        if (!c)
+            continue;
+
+        if (c == '\b' && (*current_column || vline_breaks)) {
+            __io_putchar('\b');
+            __io_putchar(' ');
+            __io_putchar('\b');
+            if (buffer_write_pos > -1)
+                buffer_write_pos--;
+            continue;
+        } else if (c == '\n') {
+            __io_putchar('\n');
+            found_newline = true;
+            buffer_read_pos = 0;
+        } else if (c <= '\037') {
+            __io_putchar('^');
+            __io_putchar(c + 'A' - 1);
+        } else {
+            __io_putchar(c);
+        }
+        buffer[++buffer_write_pos] = c;
+    }
+
+    if (buffer_read_pos == buffer_write_pos) {
+        found_newline = false;
+        buffer_write_pos = -1;
+    }
+
+    return buffer[buffer_read_pos++];
 }

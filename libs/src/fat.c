@@ -439,7 +439,7 @@ void new_file(const struct FATParameters *params, struct FATFile *file, const ch
 
     reset_file(file);
 
-    int length, offset;
+    int length, offset = 0; // initial value to get rid of bogus warning
     bool done = false;
 
     uint32_t cluster = _get_open_cluster(params, 0, sd_buffer);

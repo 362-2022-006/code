@@ -3,6 +3,7 @@
 #include <stm32f0xx.h>
 
 #include "keyboard.h"
+#include "types.h"
 
 static const char map[256] = {
     0,    0,   0,   0,    0,   0,   0,   0,   0,   0,   0,    0,   0,    '\t', '`', 0,   0,   0,
@@ -117,10 +118,10 @@ void USART3_4_5_6_7_8_IRQHandler(void) {
 }
 
 char get_shifted_key(char key) {
+    key = get_caps_lock_key(key);
+
     if (key == '1' || key == '3' || key == '4' || key == '5') {
         return key - '1' + '!';
-    } else if ('a' <= key && key <= 'z') {
-        return key - 'a' + 'A';
     }
 
     switch (key) {
@@ -170,11 +171,88 @@ char get_control_key(char key) {
     return key - 'A' + 1;
 }
 
+char get_caps_lock_key(char key) {
+    if ('a' <= key && key <= 'z') {
+        return key - 'a' + 'A';
+    } else if ('A' <= key && key <= 'Z') {
+        return key - 'A' + 'a';
+    }
+    return key;
+}
+
+static bool shift_down = false;
+static bool control_down = false;
+static u8 caps_lock_down = 0;
+
 const KeyEvent *get_keyboard_event(void) {
     if (first_event != last_event) {
-        KeyEvent *event = &events[first_event++];
+        const KeyEvent *event = &events[first_event++];
         first_event %= KEYEVENT_BUFFER_SIZE;
+
+        if (event->class == LSHIFT_KEY || event->class == RSHIFT_KEY) {
+            shift_down = event->type != KEY_UP;
+        } else if (event->class == CONTROL_KEY) {
+            control_down = event->type != KEY_UP;
+        } else if (event->class == CAPS_LOCK_KEY) {
+            caps_lock_down ^= event->type == KEY_DOWN;
+        }
+
         return event;
     }
+    return NULL;
+}
+
+char get_keyboard_character(void) {
+    const KeyEvent *event;
+
+    static char char_buffer[2] = {0};
+    static u8 buffer_length = 0;
+
+    if (buffer_length) {
+        buffer_length--;
+        return char_buffer[buffer_length];
+    }
+
+    while ((event = get_keyboard_event())) {
+        if (event->type != KEY_UP) {
+            if (event->class == ASCII_KEY) {
+                char c = event->value;
+                if (control_down) {
+                    c = get_control_key(c);
+                } else {
+                    if (shift_down) {
+                        c = get_shifted_key(c);
+                    }
+                    if (caps_lock_down) {
+                        c = get_caps_lock_key(c);
+                    }
+                }
+                return c;
+            } else if (event->class == ESCAPE_KEY) {
+                return '\033';
+            } else if (event->class == LEFT_ARROW_KEY) {
+                char_buffer[1] = '[';
+                char_buffer[0] = 'D';
+                buffer_length = 2;
+                return '\033';
+            } else if (event->class == RIGHT_ARROW_KEY) {
+                char_buffer[1] = '[';
+                char_buffer[0] = 'C';
+                buffer_length = 2;
+                return '\033';
+            } else if (event->class == UP_ARROW_KEY) {
+                char_buffer[1] = '[';
+                char_buffer[0] = 'A';
+                buffer_length = 2;
+                return '\033';
+            } else if (event->class == DOWN_ARROW_KEY) {
+                char_buffer[1] = '[';
+                char_buffer[0] = 'B';
+                buffer_length = 2;
+                return '\033';
+            }
+        }
+    }
+
     return NULL;
 }

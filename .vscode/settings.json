@@ -1,5 +1,5 @@
 {
-    "cortex-debug.variableUseNaturalFormat": true,
+    "cortex-debug.variableUseNaturalFormat": false,
     "files.associations": {
         "*.h": "cpp",
         "*.s": "arm",
@@ -10,7 +10,8 @@
         "random": "c",
         "queue": "c",
         "*.tcc": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "ios": "c"
     },
     "disasexpl.associations": {
         "**/*.c": "${workspaceFolder}/build/intermediates/${fileBasenameNoExtension}.s"

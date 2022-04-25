@@ -4,102 +4,35 @@
 #include "keyboard.h"
 #include "text.h"
 
-void blank_screen(void); // FIXME: h file
-
 void start_console(bool prompt) {
-    init_text();
-    blank_screen();
+    init_text(true);
 
     configure_keyboard();
 
     if (prompt) {
+        if (get_current_column())
+            puts("");
         printf("> ");
         fflush(stdout);
     }
 }
 
-const bool do_print = false;
+void soft_reset(void);
 
 void update_console(void) {
-    static bool shift_down = false;
-    static bool control_down = false;
-
-    const KeyEvent *event;
-    while ((event = get_keyboard_event())) {
-        char c = event->value;
-        if (shift_down) {
-            c = get_shifted_key(c);
+    char key;
+    // while ((key = get_keyboard_character())) {
+    while ((key = getchar()) != '\n') {
+        if (key == '\003') {
+            soft_reset();
         }
-        if (control_down) {
-            c = get_control_key(c);
+        if (key == '\b') {
+            putchar('\b');
+            putchar(' ');
         }
-
-        if (event->type == KEY_HELD) {
-            if (event->class == ASCII_KEY) {
-                if (c == '\b') {
-                    putchar('\b');
-                    putchar(' ');
-                }
-                putchar(c);
-                fflush(stdout);
-            }
-            continue;
-        }
-
-        if (event->class == ASCII_KEY) {
-            if (do_print)
-                printf("Key '%c'", c);
-            else if (event->type == KEY_DOWN) {
-                if (c == '\b') {
-                    putchar('\b');
-                    putchar(' ');
-                }
-                putchar(c);
-            }
-        } else if (event->class == CONTROL_KEY) {
-            if (do_print)
-                printf("Control");
-            control_down = event->type != KEY_UP;
-        } else if (event->class == ALT_KEY) {
-            if (do_print)
-                printf("Alt");
-        } else if (event->class == ESCAPE_KEY) {
-            if (do_print)
-                printf("Escape");
-            else if (event->type == KEY_DOWN)
-                putchar('\033');
-        } else if (event->class == LSHIFT_KEY || event->class == RSHIFT_KEY) {
-            if (do_print)
-                printf("Shift");
-            shift_down = event->type != KEY_UP;
-        } else if (event->class == LEFT_ARROW_KEY) {
-            if (do_print)
-                printf("Left");
-            else if (event->type == KEY_DOWN)
-                printf("\033[D");
-        } else if (event->class == RIGHT_ARROW_KEY) {
-            if (do_print)
-                printf("Right");
-            else if (event->type == KEY_DOWN)
-                printf("\033[C");
-        } else if (event->class == UP_ARROW_KEY) {
-            if (do_print)
-                printf("Up");
-            else if (event->type == KEY_DOWN)
-                printf("\033[A");
-        } else if (event->class == DOWN_ARROW_KEY) {
-            if (do_print)
-                printf("Down");
-            else if (event->type == KEY_DOWN)
-                printf("\033[B");
-        } else {
-            if (do_print)
-                printf("Data: 0x%02x", event->class);
-        }
-
-        if (do_print)
-            puts(event->type == KEY_UP ? " up" : " down");
-
+        putchar(key);
         fflush(stdout);
     }
+    printf("\n> ");
+    fflush(stdout);
 }

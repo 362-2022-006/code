@@ -41,6 +41,26 @@ defined in linker script */
   .weak Reset_Handler
   .type Reset_Handler, %function
 Reset_Handler:
+  ldr  r0, =0x40021024
+  ldr  r0, [r0]
+  lsls r0, r0, #4
+  bcs  RAM_Initialization
+
+  ldr  r0, =0x20000000
+  ldr  r1, =0x800
+  movs r2, #0
+  movs r3, r2
+ResetBufferLoop:
+  str  r3, [r0, r2]
+  adds r2, r2, #4
+  cmp  r2, r1
+  blo  ResetBufferLoop
+
+RAM_Initialization:
+  ldr  r0, =0x40021024
+  ldr  r1, =0x01000000
+  str  r1, [r0]
+
   ldr   r0, =_estack
   mov   sp, r0          /* set stack pointer */
 
@@ -84,6 +104,14 @@ LoopFillZerobss:
 
 LoopForever:
     b LoopForever
+
+
+.global soft_reset
+.type soft_reset, %function
+soft_reset:
+  ldr  r0, =0xE000ED0C
+  ldr  r1, =0x05FA0004
+  str  r1, [r0]
 
 
 .size Reset_Handler, .-Reset_Handler

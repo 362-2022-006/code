@@ -12,13 +12,17 @@
 #include "types.h"
 
 void *sbrk(int incr);
+void soft_reset(void);
 
 static void _wait_for_key(void) {
+    // flush buffer
+    while (get_keyboard_event())
+        ;
+
     puts("Waiting for key...");
 
-    const KeyEvent *event;
     for (;;) {
-        while ((event = get_keyboard_event())) {
+        if (get_keyboard_event()) {
             puts("Key pressed");
             return;
         }
@@ -35,7 +39,7 @@ static bool _check_position(void *position) {
     return false;
 }
 
-static bool _do_code(void) {
+static bool _do_code(int *status) {
     uint8_t *sd_buffer = (uint8_t *)0x20004000;
 
     struct FATParameters params;
@@ -66,7 +70,7 @@ static bool _do_code(void) {
 
     // retrieve metadata
     void *code_load_position = (void *)*(uint32_t *)sd_buffer;
-    void (*entry_point)() = (void (*)())((uint32_t *)sd_buffer)[1];
+    int (*entry_point)() = (int (*)())((uint32_t *)sd_buffer)[1];
     u32 bss_length = ((uint32_t *)sd_buffer)[2];
 
     if (_check_position(code_load_position)) {
@@ -96,7 +100,7 @@ static bool _do_code(void) {
 
     _wait_for_key();
 
-    entry_point();
+    *status = entry_point();
 
     return false;
 }
@@ -104,13 +108,25 @@ static bool _do_code(void) {
 int main() {
     start_console(false);
 
-    if (_do_code()) {
+    // for (;;) {
+    //     update_console();
+    // }
+
+    // printf("run: %u\n", *(uint8_t*)0x20000000);
+    // *(uint8_t*)0x20000000 = 1;
+
+    int status;
+    if (_do_code(&status)) {
         puts("Error encountered");
         return 1;
     }
 
     start_console(false);
-    puts("Function returned");
+    printf("Function returned (%d)\n", status);
+
+    _wait_for_key();
+
+    soft_reset();
 
     return 0;
 }

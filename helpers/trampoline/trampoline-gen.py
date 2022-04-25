@@ -70,7 +70,10 @@ function_list = [
 
     # random
     'mix_random',
-    'get_random'
+    'get_random',
+
+    # text
+    'set_screen_text_buffer'
 ]
 
 asm_file = '''
