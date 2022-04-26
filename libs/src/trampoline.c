@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "console.h"
 #include "delay.h"
 #include "fat.h"
 #include "gpu.h"
@@ -48,8 +49,10 @@ const static struct {
               {"fclose", fclose},
               {"fflush", fflush},
               {"free", free},
+              {"get_caps_lock_key", get_caps_lock_key},
               {"get_control_key", get_control_key},
               {"get_file_next_sector", get_file_next_sector},
+              {"get_keyboard_character", get_keyboard_character},
               {"get_keyboard_event", get_keyboard_event},
               {"get_random", get_random},
               {"get_shifted_key", get_shifted_key},
@@ -61,6 +64,7 @@ const static struct {
               {"init_lcd_dma", init_lcd_dma},
               {"init_lcd_spi", init_lcd_spi},
               {"init_screen", init_screen},
+              {"is_in_insert_mode", is_in_insert_mode},
               {"ls", ls},
               {"malloc", malloc},
               {"memchr", memchr},
@@ -70,6 +74,7 @@ const static struct {
               {"mix_random", mix_random},
               {"open", open},
               {"open_root", open_root},
+              {"print_console_prompt", print_console_prompt},
               {"printf", printf},
               {"putchar", putchar},
               {"puts", puts},
@@ -80,8 +85,10 @@ const static struct {
               {"reset_file", reset_file},
               {"set_lcd_flag", set_lcd_flag},
               {"set_screen_text_buffer", set_screen_text_buffer},
+              {"start_console", start_console},
               {"strlen", strlen},
-              {"unhook_timer", unhook_timer}};
+              {"unhook_timer", unhook_timer},
+              {"update_console", update_console}};
 
 const static int fn_map_length = sizeof(fn_map) / sizeof(*fn_map);
 

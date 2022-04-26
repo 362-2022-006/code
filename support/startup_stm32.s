@@ -44,9 +44,19 @@ Reset_Handler:
   ldr  r0, =0x40021024
   ldr  r0, [r0]
   lsls r0, r0, #4
-  bcs  RAM_Initialization
 
   ldr  r0, =0x20000000
+  ldr  r1, =0xdecafbad
+  bcc  ResetBuffer
+
+  /* check for code at beginning of RAM */
+  ldr  r2, [r0]
+  cmp  r2, r1
+  beq  RAM_Initialization
+
+ResetBuffer:
+  str  r1, [r0]         /* store code to beginning of RAM */
+  ldr  r0, =0x20000004
   ldr  r1, =0x800
   movs r2, #0
   movs r3, r2

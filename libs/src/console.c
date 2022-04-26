@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "console.h"
 #include "keyboard.h"
 #include "text.h"
 
@@ -13,21 +14,18 @@ void start_console(bool prompt) {
         if (get_current_column())
             puts("");
 
-        // int status = *(int *)0x20000000;
-        // if (status) {
-        //     printf("Previous process returned %d\n", status);
-        // }
+        int status = *(int *)0x20000004;
+        if (status) {
+            printf("Previous process returned %d\n", status);
+        }
+        *(int *)0x20000004 = 0;
 
-        printf("> ");
-        fflush(stdout);
+        print_console_prompt();
     }
 }
 
-void soft_reset(void);
-
 void update_console(void) {
     char key;
-    // while ((key = get_keyboard_character())) {
     while ((key = __io_getchar()) != '\n') {
         if (key == '\b') {
             putchar('\b');
@@ -36,6 +34,12 @@ void update_console(void) {
         putchar(key);
         fflush(stdout);
     }
-    printf("\n> ");
+    print_console_prompt();
+}
+
+void print_console_prompt(void) {
+    if (get_current_column())
+        puts("");
+    printf("> ");
     fflush(stdout);
 }

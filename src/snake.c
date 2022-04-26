@@ -33,9 +33,9 @@
 // move to back of square
 // mark old square as empty
 
-const extern u8 black[];
-const extern u8 marker_sprite[];
-const extern u8 eraser_sprite[];
+const extern u16 black[];
+const extern u16 marker_sprite[];
+const extern u16 eraser_sprite[];
 
 int gameover = 0;
 

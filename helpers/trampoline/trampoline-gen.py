@@ -57,8 +57,11 @@ function_list = [
     # keyboard
     'configure_keyboard',
     'get_keyboard_event',
+    'get_keyboard_character',
     'get_shifted_key',
     'get_control_key',
+    'get_caps_lock_key',
+    'is_in_insert_mode',
 
     # LCD
     'init_screen',
@@ -73,7 +76,10 @@ function_list = [
     'get_random',
 
     # text
-    'set_screen_text_buffer'
+    'set_screen_text_buffer',
+    'start_console',
+    'update_console',
+    'print_console_prompt'
 ]
 
 asm_file = '''

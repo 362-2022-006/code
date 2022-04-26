@@ -1,15 +1,15 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stm32f0xx.h>
 #include <string.h>
 
 #include "audio.h"
 #include "console.h"
-#include "delay.h"
 #include "fat.h"
-#include "hexdump.h"
 #include "keyboard.h"
 #include "sd.h"
+#include "text.h"
 #include "types.h"
 
 #include "snake.h"
@@ -109,6 +109,7 @@ static bool _do_code(int *status) {
 
     _wait_for_key();
 
+    set_screen_text_buffer(false);
     *status = entry_point();
 
     return false;
@@ -118,12 +119,9 @@ int main() {
     /*
     start_console(true);
 
-    // for (;;) {
-    //     update_console();
-    // }
-
-    // printf("run: %u\n", *(uint8_t*)0x20000000);
-    // *(uint8_t*)0x20000000 = 1;
+    for (;;) {
+        update_console();
+    }
 
     start_audio();
 
@@ -138,10 +136,10 @@ int main() {
 
     _wait_for_key();
 
-    soft_reset();
+    exit(status);
     */
 
-   run_snake();
+    run_snake();
 
     return 0;
 }
