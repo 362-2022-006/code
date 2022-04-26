@@ -1,5 +1,5 @@
 {
-    "cortex-debug.variableUseNaturalFormat": true,
+    "cortex-debug.variableUseNaturalFormat": false,
     "files.associations": {
         "*.h": "cpp",
         "*.s": "arm",
@@ -9,7 +9,9 @@
         "cstring": "c",
         "random": "c",
         "queue": "c",
-        "*.tcc": "c"
+        "*.tcc": "c",
+        "system_error": "c",
+        "ios": "c"
     },
     "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, UseTab: Never, IndentWidth: 4, ColumnLimit: 100, }",
     "disasexpl.associations": {
