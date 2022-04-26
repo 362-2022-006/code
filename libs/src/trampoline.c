@@ -12,6 +12,7 @@
 #include "lcd.h"
 #include "random.h"
 #include "sd.h"
+#include "text.h"
 
 int _kill(int pid, int sig);
 void *_sbrk(int incr);
@@ -78,6 +79,7 @@ const static struct {
               {"reenable_gpu", reenable_gpu},
               {"reset_file", reset_file},
               {"set_lcd_flag", set_lcd_flag},
+              {"set_screen_text_buffer", set_screen_text_buffer},
               {"strlen", strlen},
               {"unhook_timer", unhook_timer}};
 

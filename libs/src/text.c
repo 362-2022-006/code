@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdlib.h>
 #include <stm32f0xx.h>
 #include <string.h>
 
@@ -391,13 +392,16 @@ void __io_putchar(unsigned char c) {
                 *current_column = escape_num[1] - 1;
                 goto fake_putchar_end_escape_movement;
             } else if (c == 'J' || c == 'K') {
+                // TODO: clear buffer for other codes
                 if (escape_num[0] == 2) {
-                    if (c == 'J')
+                    if (c == 'J') {
                         blank_screen();
-                    else {
+                        memset(screen_buffer, 0, LINES * COLUMNS);
+                    } else {
                         u16 color = _lookup_color(0, false);
                         for (int i = 0; i < COLUMNS; i++)
                             _write_char(' ', *current_line, i, 0, color);
+                        memset(screen_buffer + *current_line * COLUMNS, 0, COLUMNS);
                     }
                 } else if (escape_num[0] == 0) {
                     u16 color = _lookup_color(0, false);
@@ -524,41 +528,162 @@ u16 get_current_line(void) { return *current_line; }
 
 u16 get_current_column(void) { return *current_column; }
 
-unsigned char __io_getchar(void) {
-    static bool found_newline = false;
+static char input_buffer[122];
+static int8_t buffer_write_pos = -1, buffer_max_write_pos = -1;
+static int8_t buffer_read_pos;
+static bool found_newline = false;
 
-    static char buffer[122];
-    static int8_t buffer_write_pos = -1, buffer_read_pos = 0;
+static void _echo_input(char c) {
+    if (!c)
+        return;
+
+    if (c == '\b') {
+        if (buffer_write_pos < 0)
+            return;
+
+        if (input_buffer[buffer_write_pos] <= '\037') {
+            __io_putchar('\b');
+            __io_putchar(' ');
+            __io_putchar('\b');
+        }
+        __io_putchar('\b');
+        __io_putchar(' ');
+        __io_putchar('\b');
+    } else if (c <= '\037' && c != '\n') {
+        __io_putchar('^');
+        __io_putchar(c + 'A' - 1);
+    } else {
+        __io_putchar(c);
+    }
+}
+
+static void _process_input_char(char c) {
+    if (c == '\003')
+        exit(143); // SIGTERM
+    else if (c == '\n') {
+        __io_putchar('\n');
+        found_newline = true;
+        buffer_read_pos = 0;
+        input_buffer[++buffer_max_write_pos] = '\n';
+        return;
+    }
+
+    if (buffer_write_pos == buffer_max_write_pos) {
+        _echo_input(c);
+        if (c == '\b') {
+            if (buffer_write_pos > -1) {
+                buffer_write_pos--;
+                buffer_max_write_pos--;
+            }
+            return;
+        }
+        input_buffer[++buffer_write_pos] = c;
+        buffer_max_write_pos++;
+    } else {
+        if (c == '\b') {
+            if (buffer_write_pos > -1) {
+                char *pos = input_buffer + buffer_write_pos;
+                int len = buffer_max_write_pos - buffer_write_pos;
+                memmove(pos, pos + 1, len);
+                buffer_max_write_pos--;
+                buffer_write_pos--;
+
+                __io_putchar('\b');
+                int16_t initial_col = *current_column;
+                int16_t initial_line = *current_line;
+                for (int i = 1; i <= len; i++) {
+                    _echo_input(input_buffer[buffer_write_pos + i]);
+                }
+                __io_putchar(' ');
+                *current_column = initial_col;
+                *current_line = initial_line;
+            }
+        } else if (is_in_insert_mode()) {
+            char *pos = input_buffer + buffer_write_pos;
+            int len = buffer_max_write_pos - buffer_write_pos;
+            memmove(pos + 2, pos + 1, len);
+            buffer_max_write_pos++;
+            buffer_write_pos++;
+
+            _echo_input(c);
+            input_buffer[buffer_write_pos] = c;
+
+            int16_t initial_col = *current_column;
+            int16_t initial_line = *current_line;
+            for (int i = 1; i <= len; i++) {
+                _echo_input(input_buffer[buffer_write_pos + i]);
+            }
+            *current_column = initial_col;
+            *current_line = initial_line;
+        } else {
+            _echo_input(c);
+            input_buffer[++buffer_write_pos] = c;
+        }
+    }
+}
+
+unsigned char __io_getchar(void) {
+    u8 escape_state = 0;
 
     while (!found_newline) {
         char c = get_keyboard_character();
         if (!c)
             continue;
 
-        if (c == '\b' && (*current_column || vline_breaks)) {
-            __io_putchar('\b');
-            __io_putchar(' ');
-            __io_putchar('\b');
-            if (buffer_write_pos > -1)
-                buffer_write_pos--;
+        if (escape_state == 1) {
+            if (c == '[') {
+                // valid next character
+                escape_state++;
+            } else {
+                // invalid next character
+                escape_state = 0;
+                _process_input_char('\033');
+                _process_input_char(c);
+            }
             continue;
-        } else if (c == '\n') {
-            __io_putchar('\n');
-            found_newline = true;
-            buffer_read_pos = 0;
-        } else if (c <= '\037') {
-            __io_putchar('^');
-            __io_putchar(c + 'A' - 1);
-        } else {
-            __io_putchar(c);
+        } else if (escape_state == 2) {
+            if (c == 'A') { // up
+                // ignore for now
+            } else if (c == 'B') { // down
+                // ignore for now
+            } else if (c == 'C') { // right
+                if (buffer_write_pos < buffer_max_write_pos) {
+                    __io_putchar('\033');
+                    __io_putchar('[');
+                    __io_putchar('C');
+                    buffer_write_pos++;
+                }
+            } else if (c == 'D') { // left
+                if (buffer_write_pos >= 0) {
+                    __io_putchar('\b');
+                    buffer_write_pos--;
+                }
+            } else {
+                _process_input_char('\033');
+                _process_input_char('[');
+                _process_input_char(c);
+            }
+            escape_state = 0;
+            continue;
         }
-        buffer[++buffer_write_pos] = c;
+
+        if (c == '\033') {
+            escape_state = 1;
+            continue;
+        }
+
+        _process_input_char(c);
     }
 
-    if (buffer_read_pos == buffer_write_pos) {
+    if (buffer_read_pos == buffer_max_write_pos) {
         found_newline = false;
         buffer_write_pos = -1;
+        buffer_max_write_pos = -1;
     }
 
-    return buffer[buffer_read_pos++];
+    return input_buffer[buffer_read_pos++];
+}
+
+void set_text_cursor_display(bool on) {
+    //
 }

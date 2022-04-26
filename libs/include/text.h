@@ -11,4 +11,6 @@ void blank_screen(void);
 u16 get_current_line(void);
 u16 get_current_column(void);
 
+unsigned char __io_getchar(void);
+
 #endif

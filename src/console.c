@@ -12,6 +12,12 @@ void start_console(bool prompt) {
     if (prompt) {
         if (get_current_column())
             puts("");
+
+        // int status = *(int *)0x20000000;
+        // if (status) {
+        //     printf("Previous process returned %d\n", status);
+        // }
+
         printf("> ");
         fflush(stdout);
     }
@@ -22,10 +28,7 @@ void soft_reset(void);
 void update_console(void) {
     char key;
     // while ((key = get_keyboard_character())) {
-    while ((key = getchar()) != '\n') {
-        if (key == '\003') {
-            soft_reset();
-        }
+    while ((key = __io_getchar()) != '\n') {
         if (key == '\b') {
             putchar('\b');
             putchar(' ');

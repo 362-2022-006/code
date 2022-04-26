@@ -182,7 +182,8 @@ char get_caps_lock_key(char key) {
 
 static bool shift_down = false;
 static bool control_down = false;
-static u8 caps_lock_down = 0;
+static u8 caps_lock_mode = 0;
+static u8 insert_mode = 0;
 
 const KeyEvent *get_keyboard_event(void) {
     if (first_event != last_event) {
@@ -194,7 +195,9 @@ const KeyEvent *get_keyboard_event(void) {
         } else if (event->class == CONTROL_KEY) {
             control_down = event->type != KEY_UP;
         } else if (event->class == CAPS_LOCK_KEY) {
-            caps_lock_down ^= event->type == KEY_DOWN;
+            caps_lock_mode ^= event->type == KEY_DOWN;
+        } else if (event->class == INSERT_KEY) {
+            insert_mode ^= event->type == KEY_DOWN;
         }
 
         return event;
@@ -223,7 +226,7 @@ char get_keyboard_character(void) {
                     if (shift_down) {
                         c = get_shifted_key(c);
                     }
-                    if (caps_lock_down) {
+                    if (caps_lock_mode) {
                         c = get_caps_lock_key(c);
                     }
                 }
@@ -250,9 +253,15 @@ char get_keyboard_character(void) {
                 char_buffer[0] = 'B';
                 buffer_length = 2;
                 return '\033';
+            } else {
+                // printf("D: 0x%2x\n", event->class);
             }
         }
     }
 
     return NULL;
+}
+
+bool is_in_insert_mode(void) {
+    return insert_mode;
 }

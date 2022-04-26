@@ -10,6 +10,7 @@ enum EventClass {
     CAPS_LOCK_KEY = 0x58,
     RSHIFT_KEY = 0x59,
     LEFT_ARROW_KEY = 0x6b,
+    INSERT_KEY = 0x70,
     DOWN_ARROW_KEY = 0x72,
     RIGHT_ARROW_KEY = 0x74,
     UP_ARROW_KEY = 0x75,
@@ -30,5 +31,7 @@ char get_keyboard_character(void);
 char get_shifted_key(char);
 char get_control_key(char);
 char get_caps_lock_key(char);
+
+bool is_in_insert_mode(void);
 
 #endif

@@ -74,8 +74,11 @@ int _kill(int pid, int sig) {
     return -1;
 }
 
+void soft_reset(void);
 void _exit(int status) {
     _kill(status, -1);
+    *(int*)0x20000000 = status;
+    soft_reset();
     while (1) {
     } /* Make sure we hang here */
 }

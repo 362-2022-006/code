@@ -36,6 +36,10 @@ static bool _check_position(void *position) {
         puts("Failed position check");
         return true;
     }
+    if ((u32)position > 0x20007000) {
+        puts("Position is above top of RAM"); // technically top of RAM - 2 KiB
+        return true;
+    }
     return false;
 }
 
@@ -75,6 +79,8 @@ static bool _do_code(int *status) {
 
     if (_check_position(code_load_position)) {
         puts("Not enough space to load code");
+        printf("Break is at %p\n", sbrk(0));
+        printf("Code wants to load at %p\n", code_load_position);
         return true;
     }
 
@@ -106,11 +112,11 @@ static bool _do_code(int *status) {
 }
 
 int main() {
-    start_console(false);
+    start_console(true);
 
-    // for (;;) {
-    //     update_console();
-    // }
+    for (;;) {
+        update_console();
+    }
 
     // printf("run: %u\n", *(uint8_t*)0x20000000);
     // *(uint8_t*)0x20000000 = 1;
