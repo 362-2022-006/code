@@ -4,15 +4,17 @@
 enum EventClass {
     ASCII_KEY,
     PAUSE_KEY,
-    LSHIFT_KEY = 0x12,
-    RSHIFT_KEY = 0x59,
-    CONTROL_KEY = 0x14,
     ALT_KEY = 0x11,
-    ESCAPE_KEY = 0x76,
+    LSHIFT_KEY = 0x12,
+    CONTROL_KEY = 0x14,
+    CAPS_LOCK_KEY = 0x58,
+    RSHIFT_KEY = 0x59,
     LEFT_ARROW_KEY = 0x6b,
+    INSERT_KEY = 0x70,
+    DOWN_ARROW_KEY = 0x72,
     RIGHT_ARROW_KEY = 0x74,
     UP_ARROW_KEY = 0x75,
-    DOWN_ARROW_KEY = 0x72
+    ESCAPE_KEY = 0x76
 };
 enum EventType { KEY_DOWN, KEY_HELD, KEY_UP };
 
@@ -24,8 +26,12 @@ typedef struct {
 
 void configure_keyboard(void);
 const KeyEvent *get_keyboard_event(void);
+char get_keyboard_character(void);
 
 char get_shifted_key(char);
 char get_control_key(char);
+char get_caps_lock_key(char);
+
+bool is_in_insert_mode(void);
 
 #endif
