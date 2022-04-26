@@ -43,134 +43,134 @@ short int wavetable[N];
 // step[60] is the step size for middle C.
 // step[69] is the step size for 440 Hz.
 const int step[] = {
-        A14 / STEP9,    // C                         C-1
-        A14 / STEP8,    // C# / Db
-        A14 / STEP7,    // D
-        A14 / STEP6,    // D# / Eb
-        A14 / STEP5,    // E
-        A14 / STEP4,    // F
-        A14 / STEP3,    // F# / Gb
-        A14 / STEP2,    // G
-        A14 / STEP1,    // G# / Ab
-        A14,            // A14                       A0
-        A14 * STEP1,    // A# / Bb
-        A14 * STEP2,    // B
-        A14 * STEP3,    // C                         C0
-        A14 * STEP4,    // C# / Db
-        A14 * STEP5,    // D
-        A27 * STEP6,    // D# / Eb
-        A27 / STEP5,    // E
-        A27 / STEP4,    // F
-        A27 / STEP3,    // F# / Gb
-        A27 / STEP2,    // G
-        A27 / STEP1,    // G# / Ab
-        A27,            // A27                       A1
-        A27 * STEP1,    // A# / Bb
-        A27 * STEP2,    // B
-        A27 * STEP3,    // C                         C1
-        A27 * STEP4,    // C# / Db
-        A27 * STEP5,    // D
-        A27 * STEP6,    // D# / Eb
-        A55 / STEP5,    // E
-        A55 / STEP4,    // F
-        A55 / STEP3,    // F# / Gb
-        A55 / STEP2,    // G
-        A55 / STEP1,    // G# / Ab
-        A55,            // A55                       A2
-        A55 * STEP1,    // A# / Bb
-        A55 * STEP2,    // B
-        A55 * STEP3,    // C                         C2
-        A55 * STEP4,    // C# / Db
-        A55 * STEP5,    // D
-        A55 * STEP6,    // D# / Eb
-        A110 / STEP5,   // E
-        A110 / STEP4,   // F
-        A110 / STEP3,   // F# / Gb
-        A110 / STEP2,   // G
-        A110 / STEP1,   // G# / Ab
-        A110,           // A110                     A3
-        A110 * STEP1,   // A# / Bb
-        A110 * STEP2,   // B
-        A110 * STEP3,   // C                        C3
-        A110 * STEP4,   // C# / Db
-        A110 * STEP5,   // D
-        A110 * STEP6,   // D# / Eb
-        A220 / STEP5,   // E
-        A220 / STEP4,   // F
-        A220 / STEP3,   // F# / Gb
-        A220 / STEP2,   // G
-        A220 / STEP1,   // G# / Ab
-        A220,           // A220                     A4
-        A220 * STEP1,   // A# / Bb
-        A220 * STEP2,   // B
-        A220 * STEP3,   // C (middle C)             C4 (element #60)
-        A220 * STEP4,   // C# / Db
-        A220 * STEP5,   // D
-        A220 * STEP6,   // D# / Eb
-        A440 / STEP5,   // E
-        A440 / STEP4,   // F
-        A440 / STEP3,   // F# / Gb
-        A440 / STEP2,   // G
-        A440 / STEP1,   // G# / Ab
-        A440,           // A440                     A5
-        A440 * STEP1,   // A# / Bb
-        A440 * STEP2,   // B
-        A440 * STEP3,   // C                        C5
-        A440 * STEP4,   // C# / Db
-        A440 * STEP5,   // D
-        A440 * STEP6,   // D# / Eb
-        A880 / STEP5,   // E
-        A880 / STEP4,   // F
-        A880 / STEP3,   // F# / Gb
-        A880 / STEP2,   // G
-        A880 / STEP1,   // G# / Ab
-        A880,           // A880                     A6
-        A880 * STEP1,   // A# / Bb
-        A880 * STEP2,   // B
-        A880 * STEP3,   // C                        C6
-        A880 * STEP4,   // C# / Db
-        A880 * STEP5,   // D
-        A880 * STEP6,   // D# / Eb
-        A1760 / STEP5,  // E
-        A1760 / STEP4,  // F
-        A1760 / STEP3,  // F# / Gb
-        A1760 / STEP2,  // G
-        A1760 / STEP1,  // G# / Ab
-        A1760,          // A1760                   A7
-        A1760 * STEP1,  // A# / Bb
-        A1760 * STEP2,  // B
-        A1760 * STEP3,  // C                       C7
-        A1760 * STEP4,  // C# / Db
-        A1760 * STEP5,  // D
-        A1760 * STEP6,  // D# / Eb
-        A3520 / STEP5,  // E
-        A3520 / STEP4,  // F
-        A3520 / STEP3,  // F# / Gb
-        A3520 / STEP2,  // G
-        A3520 / STEP1,  // G# / Ab
-        A3520,          // A3520                   A8
-        A3520 * STEP1,  // A# / Bb
-        A3520 * STEP2,  // B
-        A3520 * STEP3,  // C                       C8
-        A3520 * STEP4,  // C# / Db
-        A3520 * STEP5,  // D
-        A3520 * STEP6,  // D# / Eb
-        A7040 / STEP5,  // E
-        A7040 / STEP4,  // F
-        A7040 / STEP3,  // F# / Gb
-        A7040 / STEP2,  // G
-        A7040 / STEP1,  // G# / Ab
-        A7040,          // A7040                   A9
-        A7040 * STEP1,  // A# / Bb
-        A7040 * STEP2,  // B
-        A7040 * STEP3,  // C                       C9
-        A7040 * STEP4,  // C# / Db
-        A7040 * STEP5,  // D
-        A7040 * STEP6,  // D# / Eb
-        A14080 / STEP5, // E
-        A14080 / STEP4, // F
-        A14080 / STEP3, // F# / Gb
-        A14080 / STEP2, // G
+    A14 / STEP9,    // C                         C-1
+    A14 / STEP8,    // C# / Db
+    A14 / STEP7,    // D
+    A14 / STEP6,    // D# / Eb
+    A14 / STEP5,    // E
+    A14 / STEP4,    // F
+    A14 / STEP3,    // F# / Gb
+    A14 / STEP2,    // G
+    A14 / STEP1,    // G# / Ab
+    A14,            // A14                       A0
+    A14 *STEP1,     // A# / Bb
+    A14 *STEP2,     // B
+    A14 *STEP3,     // C                         C0
+    A14 *STEP4,     // C# / Db
+    A14 *STEP5,     // D
+    A27 *STEP6,     // D# / Eb
+    A27 / STEP5,    // E
+    A27 / STEP4,    // F
+    A27 / STEP3,    // F# / Gb
+    A27 / STEP2,    // G
+    A27 / STEP1,    // G# / Ab
+    A27,            // A27                       A1
+    A27 *STEP1,     // A# / Bb
+    A27 *STEP2,     // B
+    A27 *STEP3,     // C                         C1
+    A27 *STEP4,     // C# / Db
+    A27 *STEP5,     // D
+    A27 *STEP6,     // D# / Eb
+    A55 / STEP5,    // E
+    A55 / STEP4,    // F
+    A55 / STEP3,    // F# / Gb
+    A55 / STEP2,    // G
+    A55 / STEP1,    // G# / Ab
+    A55,            // A55                       A2
+    A55 *STEP1,     // A# / Bb
+    A55 *STEP2,     // B
+    A55 *STEP3,     // C                         C2
+    A55 *STEP4,     // C# / Db
+    A55 *STEP5,     // D
+    A55 *STEP6,     // D# / Eb
+    A110 / STEP5,   // E
+    A110 / STEP4,   // F
+    A110 / STEP3,   // F# / Gb
+    A110 / STEP2,   // G
+    A110 / STEP1,   // G# / Ab
+    A110,           // A110                     A3
+    A110 *STEP1,    // A# / Bb
+    A110 *STEP2,    // B
+    A110 *STEP3,    // C                        C3
+    A110 *STEP4,    // C# / Db
+    A110 *STEP5,    // D
+    A110 *STEP6,    // D# / Eb
+    A220 / STEP5,   // E
+    A220 / STEP4,   // F
+    A220 / STEP3,   // F# / Gb
+    A220 / STEP2,   // G
+    A220 / STEP1,   // G# / Ab
+    A220,           // A220                     A4
+    A220 *STEP1,    // A# / Bb
+    A220 *STEP2,    // B
+    A220 *STEP3,    // C (middle C)             C4 (element #60)
+    A220 *STEP4,    // C# / Db
+    A220 *STEP5,    // D
+    A220 *STEP6,    // D# / Eb
+    A440 / STEP5,   // E
+    A440 / STEP4,   // F
+    A440 / STEP3,   // F# / Gb
+    A440 / STEP2,   // G
+    A440 / STEP1,   // G# / Ab
+    A440,           // A440                     A5
+    A440 *STEP1,    // A# / Bb
+    A440 *STEP2,    // B
+    A440 *STEP3,    // C                        C5
+    A440 *STEP4,    // C# / Db
+    A440 *STEP5,    // D
+    A440 *STEP6,    // D# / Eb
+    A880 / STEP5,   // E
+    A880 / STEP4,   // F
+    A880 / STEP3,   // F# / Gb
+    A880 / STEP2,   // G
+    A880 / STEP1,   // G# / Ab
+    A880,           // A880                     A6
+    A880 *STEP1,    // A# / Bb
+    A880 *STEP2,    // B
+    A880 *STEP3,    // C                        C6
+    A880 *STEP4,    // C# / Db
+    A880 *STEP5,    // D
+    A880 *STEP6,    // D# / Eb
+    A1760 / STEP5,  // E
+    A1760 / STEP4,  // F
+    A1760 / STEP3,  // F# / Gb
+    A1760 / STEP2,  // G
+    A1760 / STEP1,  // G# / Ab
+    A1760,          // A1760                   A7
+    A1760 *STEP1,   // A# / Bb
+    A1760 *STEP2,   // B
+    A1760 *STEP3,   // C                       C7
+    A1760 *STEP4,   // C# / Db
+    A1760 *STEP5,   // D
+    A1760 *STEP6,   // D# / Eb
+    A3520 / STEP5,  // E
+    A3520 / STEP4,  // F
+    A3520 / STEP3,  // F# / Gb
+    A3520 / STEP2,  // G
+    A3520 / STEP1,  // G# / Ab
+    A3520,          // A3520                   A8
+    A3520 *STEP1,   // A# / Bb
+    A3520 *STEP2,   // B
+    A3520 *STEP3,   // C                       C8
+    A3520 *STEP4,   // C# / Db
+    A3520 *STEP5,   // D
+    A3520 *STEP6,   // D# / Eb
+    A7040 / STEP5,  // E
+    A7040 / STEP4,  // F
+    A7040 / STEP3,  // F# / Gb
+    A7040 / STEP2,  // G
+    A7040 / STEP1,  // G# / Ab
+    A7040,          // A7040                   A9
+    A7040 *STEP1,   // A# / Bb
+    A7040 *STEP2,   // B
+    A7040 *STEP3,   // C                       C9
+    A7040 *STEP4,   // C# / Db
+    A7040 *STEP5,   // D
+    A7040 *STEP6,   // D# / Eb
+    A14080 / STEP5, // E
+    A14080 / STEP4, // F
+    A14080 / STEP3, // F# / Gb
+    A14080 / STEP2, // G
 };
 
 extern u8 test_sound[];
@@ -203,16 +203,16 @@ int parse_command(u32 command) {
 
     if (note_on) {
         int i = ch_sect;
-        for (; i < CHANNELS; i++)
-        {
-            if (!notes[i]) break;
+        for (; i < CHANNELS; i++) {
+            if (!notes[i])
+                break;
         }
         notes[i] = (volume << 8) | note;
     } else {
         int i = ch_sect;
-        for (; i < CHANNELS / n_channels; i++)
-        {
-            if ((notes[i] & 0xFF) == note) break;
+        for (; i < CHANNELS / n_channels; i++) {
+            if ((notes[i] & 0xFF) == note)
+                break;
         }
         notes[i] = 0x0000;
     }
@@ -224,13 +224,13 @@ void TIM6_DAC_IRQHandler() {
     int out = 0;
     for (int i = 0; i < CHANNELS; i++) {
         if (notes[i]) {
-            if (pos[i] > N)
-                pos[i] -= N;
-            out += (wavetable[pos[i]] * ((notes[i] & 0xff00) >> 8)) >> 8;
-            pos[i] += (step[notes[i] & 0xff] >> 16);
+            if (pos[i] >= N << 16)
+                pos[i] -= N << 16;
+            out += (wavetable[(pos[i]>>16)] * ((notes[i] & 0xff00) >> 8)) >> 8;
+            pos[i] += (step[notes[i] & 0xff]);
         }
     }
-    out = (out>>4) + 2048;
+    out = (out >> 4) + 2048;
     if (out > 4095)
         out = 4095;
     else if (out < 0)
@@ -263,11 +263,9 @@ void TIM7_IRQHandler(void) {
         dt = parse_command(read_word(idx));
         cur_t += dt;
         idx++;
-        if (cur_t >= end_t)
-        {
+        if (cur_t >= end_t) {
             idx = 4;
-            for (int i = 0; i < CHANNELS; i++)
-            {
+            for (int i = 0; i < CHANNELS; i++) {
                 notes[i] = 0;
                 pos[i] = 0;
             }
@@ -295,16 +293,16 @@ void init_dac(void) {
 
 void init_wavetable_hybrid2(void) {
     int x;
-    for(x=0; x<N; x++) {
+    for (x = 0; x < N; x++) {
         wavetable[x] = 32767 * sin(2 * M_PI * x / N);
     }
 }
 
 void read_header(void) {
     end_t = ((u64)read_word(1) << 32) | read_word(0);
-    //u64 channels = ((u64)read_word(3) << 32) | read_word(2);
-    //n_channels = channels & 0xff; // may use this for instrument voicing
-    n_channels = 1; //testing
+    // u64 channels = ((u64)read_word(3) << 32) | read_word(2);
+    // n_channels = channels & 0xff; // may use this for instrument voicing
+    n_channels = 1; // testing
     idx = 4;
 }
 
