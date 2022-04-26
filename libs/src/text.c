@@ -395,12 +395,14 @@ void __io_putchar(unsigned char c) {
                 if (escape_num[0] == 2) {
                     if (c == 'J') {
                         blank_screen();
-                        memset(screen_buffer, 0, LINES * COLUMNS);
+                        if (use_buffer)
+                            memset(screen_buffer, 0, LINES * COLUMNS);
                     } else {
                         u16 color = _lookup_color(0, false);
                         for (int i = 0; i < COLUMNS; i++)
                             _write_char(' ', *current_line, i, 0, color);
-                        memset(screen_buffer + *current_line * COLUMNS, 0, COLUMNS);
+                        if (use_buffer)
+                            memset(screen_buffer + *current_line * COLUMNS, 0, COLUMNS);
                     }
                 } else if (escape_num[0] == 0) {
                     u16 color = _lookup_color(0, false);
@@ -492,7 +494,8 @@ fake_putchar_end:
         scroll_screen(1 + *current_line - LINES);
         *current_line = LINES - 1;
 
-        memset(screen_buffer + *start_line * COLUMNS, 0, COLUMNS);
+        if (use_buffer)
+            memset(screen_buffer + *start_line * COLUMNS, 0, COLUMNS);
         *start_line = (*start_line + 1) % LINES;
     }
 }
@@ -511,6 +514,9 @@ void init_text(bool use_buffer) {
 
     init_screen(3);
     blank_screen();
+
+    if (!use_buffer)
+        return;
 
     bool on_first_line = true;
     for (int line = *start_line; line != *start_line || on_first_line; line = (line + 1) % LINES) {

@@ -58,7 +58,8 @@ static bool _do_code(int *status) {
     open_root(&params, &root);
     file = root;
 
-    if (open("TETRIS.BIN", &params, &file, sd_buffer)) {
+    // if (open("TETRIS.BIN", &params, &file, sd_buffer)) {
+    if (open("ansi-console.bin", &params, &file, sd_buffer)) {
         puts("Could not open TETRIS.BIN");
         return true;
     }
@@ -115,12 +116,11 @@ static bool _do_code(int *status) {
 }
 
 int main() {
-    /*
     start_console(true);
 
-    for (;;) {
-        update_console();
-    }
+    // for (;;) {
+    //     update_console();
+    // }
 
     start_audio();
 
@@ -136,7 +136,6 @@ int main() {
     _wait_for_key();
 
     exit(status);
-    */
 
     run_snake();
 

@@ -146,13 +146,23 @@ SECTIONS
   } >ROM
 
   /* Used by the startup to initialize data */
-  _sidata = LOADADDR(.data);
+  _sidata = LOADADDR(.data._impure_ptr);
 
-  /* Initialized data sections into RAM memory */
-  .data : 
+  .data._impure_ptr :
   {
     . = ALIGN(4);
-    _sdata = .;        /* create a global symbol at data start */
+    _sdata = .;
+    *(.data._impure_ptr)
+
+    /* no clue why this is needed */
+    SHORT(0xdead);
+    SHORT(0xbeef);
+  } >RAM AT> ROM
+
+  /* Initialized data sections into RAM memory */
+  .data :
+  {
+    . = ALIGN(4);
     *(.data)           /* .data sections */
     *(.data*)          /* .data* sections */
 
