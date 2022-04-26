@@ -1,6 +1,8 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
+#include "types.h"
+
 enum EventClass {
     ASCII_KEY,
     PAUSE_KEY,

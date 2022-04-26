@@ -2,7 +2,8 @@
 #define FAT_H
 
 #include <inttypes.h>
-#include <stdbool.h>
+
+#include "types.h"
 
 struct FATParameters {
     uint32_t first_sector;

@@ -2,7 +2,8 @@
 #define SD_H
 
 #include <inttypes.h>
-#include <stdbool.h>
+
+#include "types.h"
 
 bool init_sd(void);
 void close_sd(void);

@@ -1,5 +1,5 @@
-#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stm32f0xx.h>
 
 #include "keyboard.h"
@@ -200,6 +200,11 @@ const KeyEvent *get_keyboard_event(void) {
             insert_mode ^= event->type == KEY_DOWN;
         }
 
+        if (event->class == ASCII_KEY && event->type == KEY_DOWN && event->value == 'c' &&
+            control_down) {
+            exit(143); // ^C -> SIGTERM
+        }
+
         return event;
     }
     return NULL;
@@ -262,6 +267,4 @@ char get_keyboard_character(void) {
     return NULL;
 }
 
-bool is_in_insert_mode(void) {
-    return insert_mode;
-}
+bool is_in_insert_mode(void) { return insert_mode; }

@@ -2,8 +2,9 @@
 #define SD_SPI_H
 
 #include <inttypes.h>
-#include <stdbool.h>
 #include <stm32f0xx.h>
+
+#include "types.h"
 
 #define SD_SPI SPI2
 

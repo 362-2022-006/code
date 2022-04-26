@@ -1,7 +1,8 @@
 #include "hexdump.h"
 
-#include <stdbool.h>
 #include <stdio.h>
+
+#include "types.h"
 
 void _hexdump_print_char(uint8_t c) {
     if (' ' <= c && c <= '~') {
