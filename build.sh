@@ -1,5 +1,7 @@
-USER_FILES="src/main.c src/tetris.c src/console.c"
-USER_DATA="src/images/tetris-sprites.c src/sounds/test-sound.c"
+# USER_FILES="src/main.c src/tetris.c src/console.c"
+# USER_DATA="src/images/tetris-sprites.c src/sounds/test-sound.c"
+USER_FILES="src/main.c src/snake.c"
+USER_DATA="src/images/snake-sprites.c"
 
 # OPTIMIZE="-g"
 # OPTIMIZE="-O3 -g"

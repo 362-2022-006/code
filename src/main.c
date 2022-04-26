@@ -12,6 +12,8 @@
 #include "sd.h"
 #include "types.h"
 
+#include "snake.h"
+
 void *sbrk(int incr);
 void soft_reset(void);
 
@@ -113,6 +115,7 @@ static bool _do_code(int *status) {
 }
 
 int main() {
+    /*
     start_console(true);
 
     // for (;;) {
@@ -136,6 +139,9 @@ int main() {
     _wait_for_key();
 
     soft_reset();
+    */
+
+   run_snake();
 
     return 0;
 }
