@@ -6,6 +6,8 @@
 
 #include "sd_spi.h"
 
+// #define DEBUG_SD
+
 uint8_t send_cmd_crc(uint8_t cmd, uint32_t arg, uint8_t crc) {
     flush_spi();
 
@@ -115,7 +117,9 @@ bool init_sd(void) {
         puts("ACMD41 error");
         return true;
     } else {
+#ifdef DEBUG_SD
         printf("ACMD41 success, %d attempts\n", count);
+#endif
     }
 
     // CMD58 -- read OCR (for card capacity status)
@@ -125,7 +129,9 @@ bool init_sd(void) {
         return true;
     }
     if (reg & (1 << 30)) {
+#ifdef DEBUG_SD
         puts("High capacity or extended capacity card identified");
+#endif
     } else {
         puts("Standard capacity card identified");
         return true;

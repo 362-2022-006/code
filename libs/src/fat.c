@@ -7,11 +7,17 @@
 #include "sd.h"
 #include "sd_spi.h"
 
+static bool sd_initialized = false;
+
 bool init_fat(struct FATParameters *params, uint8_t sd_buffer[512]) {
-    if (init_sd()) {
-        puts("Error, initializing SD card");
-        return true;
+    if (!sd_initialized) {
+        if (init_sd()) {
+            puts("Error, initializing SD card");
+            return true;
+        }
     }
+
+    sd_initialized = true;
 
     if (find_fat_parameters(params, sd_buffer)) {
         puts("Could not find FAT parameters");
@@ -224,9 +230,10 @@ void ls(const struct FATParameters *params, struct FATFile *file, uint8_t sd_buf
             if (ent->name[0] == 0xE5)
                 continue;
 
+            printf("%8lu  ", ent->file_size);
+
             if (LFN) {
                 struct DIREntry *lfn_ent = ent;
-                printf("LFN: ");
                 while (true) {
                     lfn_ent--;
                     for (int i = 1; i < 0x20; i += 2) {
@@ -259,17 +266,19 @@ void ls(const struct FATParameters *params, struct FATFile *file, uint8_t sd_buf
                 }
             }
 
-            uint32_t cluster = ent->cluster_high << 16;
-            cluster |= ent->cluster_low;
+            putchar('\n');
 
-            printf(": 0x%08lx (0x%08lx)\n", cluster, ent->file_size);
+            // uint32_t cluster = ent->cluster_high << 16;
+            // cluster |= ent->cluster_low;
+
+            // printf(": 0x%08lx (0x%08lx)\n", cluster, ent->file_size);
         }
     }
 }
 
 uint32_t _find_dir_entry_matching(const char *name, const struct FATParameters *params,
-                              struct FATFile *file, uint8_t sd_buffer[512],
-                              struct DIREntry **dir_entry) {
+                                  struct FATFile *file, uint8_t sd_buffer[512],
+                                  struct DIREntry **dir_entry) {
     if (!file->directory)
         return 0;
 
