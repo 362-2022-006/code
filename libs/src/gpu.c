@@ -19,7 +19,7 @@ void DMA1_CH4_5_6_7_DMA2_CH3_4_5_IRQHandler(void);
 
 // queues the sprite at "data" to be drawn at "x, y"
 // metadata described in "gpu.h" (0 for 16x16 sprite)
-void gpu_buffer_add(u16 x, u16 y, const u16 *data, u16 meta) {
+void gpu_buffer_add(u16 x, u16 y, const void *data, u16 meta) {
     // hang until free space in buffer
     while ((gpu_fifo_end + 1) % GPU_FIFO_SIZE == gpu_fifo_start)
         ;

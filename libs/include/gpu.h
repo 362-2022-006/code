@@ -30,7 +30,7 @@ typedef struct {
 } GPU_FIFO;
 
 void init_gpu();
-void gpu_buffer_add(u16 x, u16 y, const u16 *data, u16 meta);
+void gpu_buffer_add(u16 x, u16 y, const void *data, u16 meta);
 
 void disable_gpu();
 void reenable_gpu();
