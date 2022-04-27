@@ -51,30 +51,135 @@ static char _get_non_whitespace(void) {
     return c;
 }
 
+static int _backslash_escape(char *c) {
+    switch (*c) {
+    case 'a':
+        c[0] = '\a';
+        break;
+    case 'b':
+        c[0] = '\b';
+        break;
+    case 't':
+        c[0] = '\t';
+        break;
+    case 'n':
+        c[0] = '\n';
+        break;
+    case 'v':
+        c[0] = '\v';
+        break;
+    case 'f':
+        c[0] = '\f';
+        break;
+    case 'r':
+        c[0] = '\r';
+        break;
+    case '"':
+    case '\n':
+    case '\\':
+        break;
+    case 'h': {
+        char n = 0;
+        for (int i = 1; i <= 2; i++) {
+            if ('0' <= c[i] && c[i] <= '9') {
+                n *= 16;
+                n += c[i] - '0';
+            } else if ('a' <= c[i] && c[i] <= 'f') {
+                n *= 16;
+                n += c[i] - 'a' + 10;
+            } else if ('A' <= c[i] && c[i] <= 'F') {
+                n *= 16;
+                n += c[i] - 'A' + 10;
+            } else {
+                if (i == 1)
+                    return 0;
+                else {
+                    c[0] = n;
+                    return i;
+                }
+            }
+        }
+        c[0] = n;
+        return 3;
+    }
+    default:
+        if ('0' <= c[0] && c[0] <= '7') {
+            char n = 0;
+            for (int i = 0; i < 3; i++) {
+                if ('0' <= c[i] && c[i] <= '7') {
+                    n *= 8;
+                    n += c[i] - '0';
+                } else {
+                    c[0] = n;
+                    return i;
+                }
+            }
+            c[0] = n;
+            return 3;
+        } else
+            return 0;
+    }
+    return 1;
+}
+
+#define READ_IO_BUFFER 32
 static char *_read_io_word(unsigned int max_len) {
     char *ptr = NULL;
     unsigned int ptr_len = 0;
-    char buffer[22];
-    u8 len = 0;
+    char buffer[READ_IO_BUFFER];
+    char backslash_buffer[3];
+    u8 len = 0, bpos = 3;
+    bool quoted = false, backslash = false;
 
     char c = _get_non_whitespace();
     for (;;) {
-        buffer[len++] = c;
-        if (c == ' ' || c == '\n')
-            break;
-        if (len >= 22) {
+        if (backslash) {
+            backslash_buffer[0] = c;
+            backslash_buffer[1] = __io_getchar();
+            backslash_buffer[2] = backslash_buffer[1] == '\n' ? 0 : __io_getchar();
+            int length = _backslash_escape(backslash_buffer);
+            if (!length) {
+                buffer[len++] = '\\';
+            } else {
+                if (backslash_buffer[0])
+                    buffer[len++] = backslash_buffer[0];
+            }
+            bpos = length;
+            backslash = false;
+        } else if (c == '"') {
+            quoted = true;
+        } else {
+            buffer[len++] = c;
+
+            if (quoted && c == '"') {
+                quoted = false;
+                len--;
+            } else if ((!quoted && c == ' ') || c == '\n') {
+                break;
+            } else if (c == '\\') {
+                backslash = true;
+                len--;
+            }
+        }
+
+        // if backslash the next iteration might write four characters
+        if (len >= READ_IO_BUFFER || (backslash && len >= READ_IO_BUFFER - 3)) {
             if (ptr)
-                ptr = realloc(ptr, ptr_len + 22);
+                ptr = realloc(ptr, ptr_len + len);
             else
-                ptr = malloc(22);
-            memcpy(ptr + ptr_len, buffer, 22);
-            ptr_len += 22;
+                ptr = malloc(len);
+            memcpy(ptr + ptr_len, buffer, len);
+            ptr_len += len;
             len = 0;
         }
         if (ptr_len + len >= max_len) {
             break;
         }
-        c = __io_getchar();
+
+        if (bpos < 3)
+            c = backslash_buffer[bpos++];
+        else
+            c = __io_getchar();
     }
 
     if (ptr)
@@ -106,9 +211,10 @@ static bool _read_path(struct FATFile *file) {
     unsigned int startIndex = 0, index = 0;
 
     *file = currentFile;
-    if (path[0] == '\n')
+    if (path[0] == '\n') {
+        free(path);
         return false;
-    else if (path[0] == '/') {
+    } else if (path[0] == '/') {
         open_root(file);
         startIndex = 1;
         index = 1;
@@ -137,7 +243,7 @@ static bool _read_path(struct FATFile *file) {
 static void _process_command(const char *command, bool no_more_input) {
     if (!strcmp(command, "ls")) {
         if (_update_current_file()) {
-            puts("Could not initialize SD");
+            // puts("Could not initialize SD");
         } else {
             if (no_more_input)
                 ls(&currentFile, sd_buffer);
@@ -152,7 +258,7 @@ static void _process_command(const char *command, bool no_more_input) {
         }
     } else if (!strcmp(command, "run")) {
         if (_update_current_file()) {
-            puts("Could not initialize SD");
+            // puts("Could not initialize SD");
         } else {
             struct FATFile file;
             if (_read_path(&file)) {
@@ -186,6 +292,27 @@ static void _process_command(const char *command, bool no_more_input) {
     } else if (!strcmp(command, "eject")) {
         hasFile = false;
         close_fat();
+    } else if (!strcmp(command, "clear")) {
+        printf("\033[2J\033[1;1H");
+    } else if (!strcmp(command, "echo")) {
+        if (no_more_input)
+            putchar('\n');
+        else {
+            bool done = false;
+            while (!done) {
+                char *word = _read_io_word(300);
+                printf("%s", word);
+
+                char *mark = word;
+                while (*mark)
+                    if (*mark++ == '\n')
+                        done = true;
+
+                free(word);
+            }
+        }
+    } else if (!*command) {
+        // empty, ignore
     } else {
         printf("command not found: %s\n", command);
     }
@@ -225,7 +352,7 @@ void print_console_prompt(void) {
     fflush(stdout); // to make sure column is accurate
     if (get_current_column())
         puts("");
-    printf("> ");
+    printf("\033[m> ");
     fflush(stdout);
 }
 

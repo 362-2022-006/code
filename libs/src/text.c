@@ -571,6 +571,9 @@ static void _process_input_char(char c) {
         buffer_read_pos = 0;
         input_buffer[++buffer_max_write_pos] = '\n';
         return;
+    } else if (c == '\t') {
+        // completely ignore tabs
+        return;
     }
 
     if (buffer_write_pos == buffer_max_write_pos) {
