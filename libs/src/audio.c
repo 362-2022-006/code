@@ -1,7 +1,9 @@
 #include <math.h>
+#include <stdlib.h>
 #include <stm32f0xx.h>
 #include <string.h>
 
+#include "fat.h"
 #include "types.h"
 
 #define N 1024
@@ -17,6 +19,11 @@ short int wavetable[N];
 extern u8 test_sound[];
 
 u32 read_word(int index) {
+    static u32 *sd_buffer;
+    static bool buffer_initialized = false;
+    static int last_boundary = -128;
+    static struct FATFile file;
+
     // reads the word at a certain place in the document
     // code here should utilize the SD card reader and check for chunk completion
     // NOTE: if cur_t == end_t, load from the beginning of the file
@@ -29,9 +36,22 @@ u32 read_word(int index) {
     // else
     //     return (u32)0xFFCC45; // testing code
 
-    u32 val;
-    memcpy(&val, test_sound + (index % 378 * 4), 4);
-    return val;
+    if (!buffer_initialized) {
+        sd_buffer = malloc(512);
+
+        init_fat((u8 *)sd_buffer);
+        open_root(&file);
+        if (open("audiofilename", &file, sd_buffer)) {
+            exit(2); // issue
+        }
+    }
+
+    if (index >= last_boundary + 128) {
+        last_boundary += 128;
+        get_file_next_sector(&file, sd_buffer);
+    }
+
+    return sd_buffer[index - last_boundary];
 }
 
 int n_channels;
@@ -67,7 +87,7 @@ void TIM6_DAC_IRQHandler() {
         if (notes[i]) {
             if (pos[i] >= N << 16)
                 pos[i] -= N << 16;
-            out += (wavetable[(pos[i]>>16)] * ((notes[i] & 0xff00) >> 8)) >> 8;
+            out += (wavetable[(pos[i] >> 16)] * ((notes[i] & 0xff00) >> 8)) >> 8;
             pos[i] += (step[notes[i] & 0xff]);
         }
     }

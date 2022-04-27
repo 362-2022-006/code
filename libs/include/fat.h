@@ -20,6 +20,8 @@ void print_sector(uint32_t sector, uint8_t sd_buffer[512]);
 
 uint32_t file_get_sector(const struct FATFile *file);
 int get_file_next_sector(struct FATFile *, uint8_t buffer[512]);
+bool get_file_next_sector_dma(struct FATFile *file, uint8_t buffer[512], volatile bool *done);
+
 void reset_file(struct FATFile *);
 
 void open_root(struct FATFile *);

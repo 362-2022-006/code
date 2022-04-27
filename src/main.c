@@ -15,11 +15,11 @@
 int main() {
     start_console(true);
 
-    for (;;) {
-        update_console();
-    }
+    start_audio();
 
-    // start_audio();
+    // for (;;) {
+    //     update_console();
+    // }
 
     // _wait_for_key();
 

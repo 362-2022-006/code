@@ -209,6 +209,30 @@ int get_file_next_sector(struct FATFile *file, uint8_t buffer[512]) {
     }
 }
 
+bool get_file_next_sector_dma(struct FATFile *file, uint8_t buffer[512], volatile bool *done) {
+    if ((file->next_cluster & 0x0FFFFFF0) == 0x0FFFFFF0) {
+        return true;
+    }
+
+    uint32_t sector = file_get_sector(file);
+    _file_increment_sector(file);
+
+    if (!file->directory) {
+        if (file->length_remaining < 512) {
+            file->length_remaining = 0;
+        } else {
+            file->length_remaining -= 512;
+        }
+    }
+
+    if (read_sector_dma(buffer, sector, done)) {
+        close_fat();
+        return true;
+    }
+
+    return false;
+}
+
 void reset_file(struct FATFile *file) {
     file->next_cluster = file->start_cluster;
     file->next_sector = 0;
@@ -267,6 +291,9 @@ void ls(struct FATFile *file, uint8_t sd_buffer[512]) {
                 continue;
 
             printf("%8lu  ", ent->file_size);
+            if (ent->attributes & 0x10) {
+                printf("\033[34m");
+            }
 
             if (LFN) {
                 bool loaded_sector = false;
@@ -312,7 +339,7 @@ void ls(struct FATFile *file, uint8_t sd_buffer[512]) {
                 }
             }
 
-            putchar('\n');
+            puts("\033[m");
 
             // uint32_t cluster = ent->cluster_high << 16;
             // cluster |= ent->cluster_low;
