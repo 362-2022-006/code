@@ -345,6 +345,16 @@ static void _process_command(const char *command, bool no_more_input) {
                 }
             }
         }
+    } else if (!strcmp(command, "help")) {
+        puts("Command listing:");
+        puts("\tcat [file ...]");
+        puts("\tcd file");
+        puts("\tclear");
+        puts("\techo [string ...]");
+        puts("\teject");
+        puts("\thelp");
+        puts("\tls [file]");
+        puts("\trun file");
     } else if (!*command) {
         // empty, ignore
     } else {
@@ -389,7 +399,7 @@ void update_console(void) {
 void print_console_prompt(void) {
     fflush(stdout); // to make sure column is accurate
     if (get_current_column())
-        puts("");
+        puts("\033[48;5;255;30m%");
     printf("\033[m> ");
     fflush(stdout);
 }
