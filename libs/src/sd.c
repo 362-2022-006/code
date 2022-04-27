@@ -4,9 +4,12 @@
 #include <stm32f0xx.h>
 #include <string.h>
 
+#include "delay.h"
 #include "sd_spi.h"
 
 // #define DEBUG_SD
+
+static bool is_initialized = false;
 
 uint8_t send_cmd_crc(uint8_t cmd, uint32_t arg, uint8_t crc) {
     flush_spi();
@@ -80,8 +83,11 @@ bool init_sd(void) {
     uint32_t reg;
     int count;
 
+    if (is_initialized)
+        return false;
+
     init_spi();
-    send_clocks(11);
+    send_clocks(20);
 
     // CMD0 -- go idle (reset)
     count = 0;
@@ -112,7 +118,8 @@ bool init_sd(void) {
         status = send_acmd(41, 0x40000000);
         if (status == 0)
             break;
-    } while (count++ < 250);
+        delay_ms(10);
+    } while (count++ < 1000);
     if (status != 0) {
         puts("ACMD41 error");
         return true;
@@ -137,10 +144,14 @@ bool init_sd(void) {
         return true;
     }
 
+    is_initialized = true;
     return false;
 }
 
-void close_sd(void) { send_clocks(2); }
+void close_sd(void) {
+    is_initialized = false;
+    send_clocks(2);
+}
 
 bool read_cid(struct CID *cid) {
     if (send_cmd(10, 0) != 0x00) {

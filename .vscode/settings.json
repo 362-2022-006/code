@@ -12,7 +12,9 @@
         "*.tcc": "c",
         "system_error": "c",
         "ios": "c",
-        "__node_handle": "c"
+        "__node_handle": "c",
+        "locale": "cpp",
+        "streambuf": "cpp"
     },
     "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, UseTab: Never, IndentWidth: 4, ColumnLimit: 100, }",
     "disasexpl.associations": {

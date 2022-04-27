@@ -689,6 +689,12 @@ unsigned char __io_getchar(void) {
     return input_buffer[buffer_read_pos++];
 }
 
+void discard_input_line(void) {
+    found_newline = false;
+    buffer_write_pos = -1;
+    buffer_max_write_pos = -1;
+}
+
 void set_text_cursor_display(bool on) {
     //
 }

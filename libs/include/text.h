@@ -12,5 +12,6 @@ u16 get_current_line(void);
 u16 get_current_column(void);
 
 unsigned char __io_getchar(void);
+void discard_input_line(void);
 
 #endif

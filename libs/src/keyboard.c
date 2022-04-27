@@ -202,7 +202,7 @@ const KeyEvent *get_keyboard_event(void) {
 
         if (event->class == ASCII_KEY && event->type == KEY_DOWN && event->value == 'c' &&
             control_down) {
-            exit(143); // ^C -> SIGTERM
+            exit(130); // ^C -> SIGTERM
         }
 
         return event;

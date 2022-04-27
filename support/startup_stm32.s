@@ -115,15 +115,6 @@ LoopFillZerobss:
 LoopForever:
     b LoopForever
 
-
-.global soft_reset
-.type soft_reset, %function
-soft_reset:
-  ldr  r0, =0xE000ED0C
-  ldr  r1, =0x05FA0004
-  str  r1, [r0]
-
-
 .size Reset_Handler, .-Reset_Handler
 
 /**
@@ -212,8 +203,8 @@ g_pfnVectors:
   	.weak	NMI_Handler
 	.thumb_set NMI_Handler,Default_Handler
 
-  	.weak	HardFault_Handler
-	.thumb_set HardFault_Handler,Default_Handler
+  @ 	.weak	HardFault_Handler
+	@ .thumb_set HardFault_Handler,Default_Handler
 
 	.weak	SVC_Handler
 	.thumb_set SVC_Handler,Default_Handler

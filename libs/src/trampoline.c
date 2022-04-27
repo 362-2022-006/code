@@ -99,6 +99,7 @@ void *SVC_function(void *addr) {
             break;
     }
     if (index == fn_map_length) {
+        exit(38);
         for (;;)
             ; // Basically a HardFault
     }
@@ -116,6 +117,7 @@ void *SVC_function(void *addr) {
 
 // provide hard fault handler for easier debugging
 void HardFault_Handler(void) {
+    exit(139);
     for (;;)
         ;
 }
