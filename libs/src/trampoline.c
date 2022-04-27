@@ -57,6 +57,7 @@ const static struct {
               {"get_random", get_random},
               {"get_shifted_key", get_shifted_key},
               {"gpu_buffer_add", gpu_buffer_add},
+              {"getchar", __io_getchar},
               {"hexdump", hexdump},
               {"hook_timer", hook_timer},
               {"init_fat", init_fat},

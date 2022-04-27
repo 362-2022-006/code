@@ -79,7 +79,8 @@ function_list = [
     'set_screen_text_buffer',
     'start_console',
     'update_console',
-    'print_console_prompt'
+    'print_console_prompt',
+    'getchar'
 ]
 
 asm_file = '''
