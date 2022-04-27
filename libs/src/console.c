@@ -77,6 +77,7 @@ static int _backslash_escape(char *c) {
     case '"':
     case '\n':
     case '\\':
+    case ' ':
         break;
     case 'h': {
         char n = 0;
@@ -202,9 +203,9 @@ static bool _update_current_file(void) {
     return false;
 }
 
-static bool _read_path(struct FATFile *file) {
+static int _read_path(struct FATFile *file) {
     if (_update_current_file()) {
-        return true;
+        return -4;
     }
 
     char *path = _read_io_word(300);
@@ -213,31 +214,33 @@ static bool _read_path(struct FATFile *file) {
     *file = currentFile;
     if (path[0] == '\n') {
         free(path);
-        return false;
+        return -1;
     } else if (path[0] == '/') {
         open_root(file);
         startIndex = 1;
         index = 1;
     }
 
-    char c = path[index];
-    while (c != ' ' && c != '\n') {
-        while (path[index] != '/' && path[index] != ' ' && path[index] != '\n') {
+    char c = 0;
+    while (path[index]) {
+        while (path[index] != '/' && path[index + 1]) {
             index++;
         }
 
         c = path[index];
         path[index] = '\0';
         if (open(path + startIndex, file, sd_buffer)) {
+            while (path[++index])
+                ;
             free(path);
-            return true;
+            return c == '\n' ? -3 : -2;
         }
 
         startIndex = ++index;
     }
 
     free(path);
-    return false;
+    return c == '\n' ? 0 : 1;
 }
 
 static void _process_command(const char *command, bool no_more_input) {
@@ -249,7 +252,7 @@ static void _process_command(const char *command, bool no_more_input) {
                 ls(&currentFile, sd_buffer);
             else {
                 struct FATFile file;
-                if (_read_path(&file)) {
+                if (_read_path(&file) < -1) {
                     puts("Invalid path");
                 } else {
                     ls(&file, sd_buffer);
@@ -257,11 +260,13 @@ static void _process_command(const char *command, bool no_more_input) {
             }
         }
     } else if (!strcmp(command, "run")) {
-        if (_update_current_file()) {
+        if (no_more_input)
+            puts("not enough arguments");
+        else if (_update_current_file()) {
             // puts("Could not initialize SD");
         } else {
             struct FATFile file;
-            if (_read_path(&file)) {
+            if (_read_path(&file) < 0) {
                 puts("Could not open file");
             } else if (file.directory) {
                 puts("Is a directory");
@@ -279,9 +284,11 @@ static void _process_command(const char *command, bool no_more_input) {
     } else if (!strcmp(command, "cd")) {
         if (_update_current_file()) {
             puts("Could not initialize SD");
-        } else {
+        } else if (no_more_input)
+            open_root(&currentFile);
+        else {
             struct FATFile file;
-            if (_read_path(&file)) {
+            if (_read_path(&file) < 0) {
                 puts("Could not open file");
             } else if (!file.directory) {
                 puts("Not a directory");
@@ -311,6 +318,33 @@ static void _process_command(const char *command, bool no_more_input) {
                 free(word);
             }
         }
+    } else if (!strcmp(command, "cat")) {
+        struct FATFile file;
+        int code;
+        if (no_more_input || (code = _read_path(&file)) == -1) {
+            char c;
+            while ((c = __io_getchar()) != '\004') {
+                putchar(c);
+            }
+        } else {
+            if (code > -4) {
+                for (;;) {
+                    if (code < 0) {
+                        puts("Invalid path");
+                    } else {
+                        int length = 0;
+                        while ((length = get_file_next_sector(&file, sd_buffer))) {
+                            for (int i = 0; i < length; i++) {
+                                putchar(sd_buffer[i]);
+                            }
+                        }
+                    }
+                    if (!(code == -2 || code == 1))
+                        break;
+                    code = _read_path(&file);
+                }
+            }
+        }
     } else if (!*command) {
         // empty, ignore
     } else {
@@ -328,6 +362,10 @@ void update_console(void) {
         command[index] = index ? __io_getchar() : _get_non_whitespace();
         if (command[index] == ' ' || command[index] == '\n')
             break;
+        else if (command[index] == '\004') {
+            print_console_prompt();
+            return;
+        }
         index++;
     }
 

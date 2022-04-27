@@ -536,7 +536,7 @@ u16 get_current_column(void) { return *current_column; }
 static char input_buffer[122];
 static int8_t buffer_write_pos = -1, buffer_max_write_pos = -1;
 static int8_t buffer_read_pos;
-static bool found_newline = false;
+static bool buffer_ready = false;
 
 static void _echo_input(char c) {
     if (!c)
@@ -563,11 +563,16 @@ static void _echo_input(char c) {
 }
 
 static void _process_input_char(char c) {
-    if (c == '\003')
-        exit(143); // SIGTERM
-    else if (c == '\n') {
+    if (c == '\003')        // ^C
+        exit(143);          // SIGTERM
+    else if (c == '\004') { // ^D (EOF)
+        buffer_ready = true;
+        buffer_read_pos = 0;
+        input_buffer[++buffer_max_write_pos] = '\004';
+        return;
+    } else if (c == '\n') {
         __io_putchar('\n');
-        found_newline = true;
+        buffer_ready = true;
         buffer_read_pos = 0;
         input_buffer[++buffer_max_write_pos] = '\n';
         return;
@@ -633,7 +638,7 @@ static void _process_input_char(char c) {
 unsigned char __io_getchar(void) {
     u8 escape_state = 0;
 
-    while (!found_newline) {
+    while (!buffer_ready) {
         char c = get_keyboard_character();
         if (!c)
             continue;
@@ -684,7 +689,7 @@ unsigned char __io_getchar(void) {
     }
 
     if (buffer_read_pos == buffer_max_write_pos) {
-        found_newline = false;
+        buffer_ready = false;
         buffer_write_pos = -1;
         buffer_max_write_pos = -1;
     }
@@ -693,7 +698,7 @@ unsigned char __io_getchar(void) {
 }
 
 void discard_input_line(void) {
-    found_newline = false;
+    buffer_ready = false;
     buffer_write_pos = -1;
     buffer_max_write_pos = -1;
 }
