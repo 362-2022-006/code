@@ -90,3 +90,9 @@ void receive_string(char *loc, int length) {
     }
     loc[i] = '\0';
 }
+
+void sd_spi_set_full_speed(void) {
+    wait_for_spi();
+    SD_SPI->CR1 &= ~(SPI_CR1_BR_1 | SPI_CR1_BR_2);
+    SD_SPI->CR1 |= SPI_CR1_BR_0; // set to 12 MHz
+}

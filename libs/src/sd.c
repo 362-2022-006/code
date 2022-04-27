@@ -144,6 +144,8 @@ bool init_sd(void) {
         return true;
     }
 
+    sd_spi_set_full_speed();
+
     is_initialized = true;
     return false;
 }

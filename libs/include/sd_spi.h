@@ -35,4 +35,6 @@ void send_clocks(int n);
 
 void receive_string(char *loc, int length);
 
+void sd_spi_set_full_speed(void);
+
 #endif

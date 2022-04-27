@@ -148,7 +148,9 @@ uint32_t file_get_sector(const struct FATFile *file) {
 bool _file_increment_sector(struct FATFile *file) {
     uint32_t fat_start = params.first_sector + params.reserved_sectors;
     file->next_sector++;
-    if (!(file->next_sector %= params.sectors_per_cluster)) {
+    if (file->next_sector >= params.sectors_per_cluster) {
+        file->next_sector -= params.sectors_per_cluster;
+
         uint32_t sector = fat_start + file->next_cluster / 128;
         uint32_t byte = 4 * (file->next_cluster % 128);
 
@@ -180,6 +182,10 @@ bool _file_increment_sector(struct FATFile *file) {
 }
 
 int get_file_next_sector(struct FATFile *file, uint8_t buffer[512]) {
+    if ((file->next_cluster & 0x0FFFFFF0) == 0x0FFFFFF0) {
+        return 0;
+    }
+
     uint32_t sector = file_get_sector(file);
     if (read_sector(buffer, sector)) {
         puts("Get file read sector error");
@@ -187,10 +193,10 @@ int get_file_next_sector(struct FATFile *file, uint8_t buffer[512]) {
         return -1;
     }
 
-    bool end = _file_increment_sector(file);
+    _file_increment_sector(file);
 
     if (file->directory) {
-        return end ? 0 : 512;
+        return 512;
     } else {
         if (file->length_remaining < 512) {
             uint16_t len = file->length_remaining;
@@ -236,9 +242,10 @@ void ls(struct FATFile *file, uint8_t sd_buffer[512]) {
 
     int length;
     bool done = false;
+    uint32_t prev_sect = 0, curr_sect = file_get_sector(file);
+    bool previous_was_LFN = false;
 
     while (!done && (length = get_file_next_sector(file, sd_buffer)) > 0) {
-        bool previous_was_LFN = false;
         for (int sec_offset = 0; sec_offset < length; sec_offset += 0x20) {
             struct DIREntry *ent = (struct DIREntry *)(sd_buffer + sec_offset);
             if (ent->attributes == 0x0F) {
@@ -262,9 +269,17 @@ void ls(struct FATFile *file, uint8_t sd_buffer[512]) {
             printf("%8lu  ", ent->file_size);
 
             if (LFN) {
+                bool loaded_sector = false;
                 struct DIREntry *lfn_ent = ent;
                 while (true) {
                     lfn_ent--;
+
+                    if (prev_sect && (void *)lfn_ent < (void *)sd_buffer) {
+                        loaded_sector = true;
+                        read_sector(sd_buffer, prev_sect);
+                        lfn_ent = (struct DIREntry *)(sd_buffer + 512 - 0x20);
+                    }
+
                     for (int i = 1; i < 0x20; i += 2) {
                         if (!*(((char *)lfn_ent) + i))
                             break;
@@ -278,6 +293,8 @@ void ls(struct FATFile *file, uint8_t sd_buffer[512]) {
                         break;
                     }
                 }
+                if (loaded_sector)
+                    read_sector(sd_buffer, curr_sect);
             } else {
                 int len = 0;
                 for (int i = 0; i < 8; i++) {
@@ -302,6 +319,8 @@ void ls(struct FATFile *file, uint8_t sd_buffer[512]) {
 
             // printf(": 0x%08lx (0x%08lx)\n", cluster, ent->file_size);
         }
+        prev_sect = curr_sect;
+        curr_sect = file_get_sector(file);
     }
 }
 
@@ -315,10 +334,10 @@ uint32_t _find_dir_entry_matching(const char *name, struct FATFile *file, uint8_
     int length;
     bool done = false;
     bool match;
-    uint32_t sector = file_get_sector(file);
+    uint32_t prev_sector = 0, sector = file_get_sector(file);
+    bool previous_was_LFN = false;
 
     while (!done && (length = get_file_next_sector(file, sd_buffer)) > 0) {
-        bool previous_was_LFN = false;
         for (int sec_offset = 0; sec_offset < length; sec_offset += 0x20) {
             struct DIREntry *ent = (struct DIREntry *)(sd_buffer + sec_offset);
             if (ent->attributes == 0x0F) {
@@ -343,9 +362,17 @@ uint32_t _find_dir_entry_matching(const char *name, struct FATFile *file, uint8_
 
             match = true;
             if (LFN) {
+                bool loaded_sector = false;
                 struct DIREntry *lfn_ent = ent;
                 while (match) {
                     lfn_ent--;
+
+                    if (prev_sector && (void *)lfn_ent < (void *)sd_buffer) {
+                        loaded_sector = true;
+                        read_sector(sd_buffer, prev_sector);
+                        lfn_ent = (struct DIREntry *)(sd_buffer + 512 - 0x20);
+                    }
+
                     for (int i = 1; i < 0x20; i += 2) {
                         if (!*(((char *)lfn_ent) + i))
                             break;
@@ -363,6 +390,8 @@ uint32_t _find_dir_entry_matching(const char *name, struct FATFile *file, uint8_
                         break;
                     }
                 }
+                if (loaded_sector)
+                    read_sector(sd_buffer, sector);
             } else {
                 int len = 0;
                 for (int i = 0; i < 8; i++) {
@@ -401,6 +430,7 @@ uint32_t _find_dir_entry_matching(const char *name, struct FATFile *file, uint8_
             }
         }
 
+        prev_sector = sector;
         sector = file_get_sector(file);
     }
 
