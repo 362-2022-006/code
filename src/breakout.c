@@ -7,7 +7,7 @@
 #include "keyboard.h"
 #include "types.h"
 
-#define FRAMERATE 120
+#define FRAMERATE 240
 #define SCREEN_X 240
 #define SCREEN_Y 320
 
@@ -30,7 +30,7 @@ static int lives;
 #define PADDLE_PADDING 4
 #define PADDLE_WIDTH 40
 
-#define PADDLE_RATE 2
+#define PADDLE_RATE 1
 
 #define PADDLE_Y (SCREEN_Y - 40)
 #define PADDLE_X_START (SCREEN_X / 2 - PADDLE_WIDTH / 2)
@@ -51,7 +51,7 @@ static int paddle_vel;
 #define BALL_X_START (SCREEN_X / 2 - BALL_SIZE / 2 - BALL_PADDING / 2)
 #define BALL_Y_START (PADDLE_Y - 20)
 #define BALL_VEL_X_START 0
-#define BALL_VEL_Y_START 3
+#define BALL_VEL_Y_START 1
 #define BALL_DIR_X_START 0
 #define BALL_DIR_Y_START 1
 
@@ -62,6 +62,8 @@ static int ball_vel_x;
 static int ball_vel_y;
 static int ball_dir_x;
 static int ball_dir_y;
+
+static int difficulty;
 
 static bool y_updated = false;
 static bool x_updated = false;
@@ -157,29 +159,29 @@ static void draw_ball() {
     static int x_state = 0;
     static int y_state = 0;
 
-    if (ball_vel_x > 4)
-        ball_vel_x = 4;
+    if (ball_vel_x > 8)
+        ball_vel_x = 8;
     else if (ball_vel_x < 0)
         ball_vel_x = 0;
 
-    if (ball_vel_y > 4)
-        ball_vel_y = 4;
+    if (ball_vel_y > 8)
+        ball_vel_y = 8;
     else if (ball_vel_y < 0)
         ball_vel_y = 0;
 
     x_state += ball_vel_x;
     y_state += ball_vel_y;
 
-    if (x_state >> 2) {
-        x_state -= 4;
+    if (x_state >> 3) {
+        x_state -= 8;
         ball_x += ball_dir_x;
 
         if (ball_x <= 0 || ball_x >= SCREEN_X - BALL_SIZE - BALL_PADDING)
             ball_dir_x *= -1;
     }
 
-    if (y_state >> 2) {
-        y_state -= 4;
+    if (y_state >> 3) {
+        y_state -= 8;
         ball_y += ball_dir_y;
 
         if (ball_y + BALL_SIZE + BALL_PADDING >= PADDLE_Y &&
@@ -237,7 +239,7 @@ static void draw_ball() {
             ball_dir_x = BALL_DIR_X_START;
             ball_dir_y = BALL_DIR_Y_START;
             ball_vel_x = BALL_VEL_X_START;
-            ball_vel_y = BALL_VEL_Y_START;
+            ball_vel_y = BALL_VEL_Y_START + difficulty;
 
             paddle_x = PADDLE_X_START;
 
@@ -337,6 +339,16 @@ void draw_frame(void) {
     draw_ball();
 }
 
+int get_difficulty() {
+    const KeyEvent *event;
+    while (true) {
+        event = get_keyboard_event();
+        if (event->type == KEY_DOWN && event->class == ASCII_KEY)
+            if (event->value >= '0' && event->value <= '9')
+                return event->value - '0';
+    }
+}
+
 int run_breakout() {
     init_gpu();
     configure_keyboard();
@@ -354,10 +366,10 @@ run_breakout_start:
     ball_dir_x = BALL_DIR_X_START;
     ball_dir_y = BALL_DIR_Y_START;
     ball_vel_x = BALL_VEL_X_START;
-    ball_vel_y = BALL_VEL_Y_START;
 
     draw_frame();
-    wait_for_input();
+    difficulty = get_difficulty();
+    ball_vel_y = BALL_VEL_Y_START + difficulty;
     hook_timer(FRAMERATE, draw_frame);
 
     while (!end_game)
