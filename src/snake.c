@@ -5,7 +5,6 @@
 #include "gpu.h"
 #include "hook.h"
 #include "keyboard.h"
-#include "lcd.h"
 #include "random.h"
 #include "types.h"
 
@@ -65,9 +64,9 @@ typedef struct {
     u8 step;
 } DRY_ERASE;
 
-DRY_ERASE marker = {.xpos = 10, .ypos = 10, .xdist = 0, .ydist = 0, .dir = RIGHT};
-DRY_ERASE eraser = {.xpos = 10, .ypos = 10, .xdist = -3, .ydist = 0, .dir = RIGHT};
-int delay = 60;
+DRY_ERASE marker;
+DRY_ERASE eraser;
+int delay;
 
 DIRECTION board[15][20];
 
@@ -169,12 +168,12 @@ void draw_marker() {
         if (marker.xpos == 15)
             marker.xpos = 0;
         else if (marker.xpos == -1)
-            marker.xpos = 15;
+            marker.xpos = 14;
 
         if (marker.ypos == 20)
             marker.ypos = 0;
         else if (marker.ypos == -1)
-            marker.ypos = 20;
+            marker.ypos = 19;
 
         if (board[marker.xpos][marker.ypos] != INVALID &&
             board[marker.xpos][marker.ypos] != APPLE) {
@@ -238,12 +237,12 @@ void draw_eraser() {
         if (eraser.xpos == 15)
             eraser.xpos = 0;
         else if (eraser.xpos == -1)
-            eraser.xpos = 15;
+            eraser.xpos = 14;
 
         if (eraser.ypos == 20)
             eraser.ypos = 0;
         else if (eraser.ypos == -1)
-            eraser.ypos = 20;
+            eraser.ypos = 19;
 
         DIRECTION old_dir = eraser.dir;
         eraser.dir = board[eraser.xpos][eraser.ypos];
@@ -303,6 +302,11 @@ void draw_frame(void) {
             add_move_buffer(DOWN);
         else if (event->class == PAUSE_KEY || event->class == ESCAPE_KEY)
             hook_timer(5, snake_paused);
+        else if (event->class == ASCII_KEY && event->value == '\t') {
+            end_game = 2;
+            unhook_timer();
+            return;
+        }
     }
 
     draw_marker();
@@ -321,11 +325,10 @@ inline static void _wait_for_key_press(void) {
             mix_random(((u32)event->value << 18) ^ ((u32)event->class << 8) ^ event->type);
             mix_random(i);
 
-            if (event->type == KEY_DOWN) {
+            if (event->type == KEY_DOWN)
                 state = 1;
-            } else if (event->type == KEY_UP && state) {
+            else if (event->type == KEY_UP && state)
                 return;
-            }
         }
     }
 }
@@ -338,9 +341,13 @@ run_snake_start:
     init_background();
     _wait_for_key_press();
 
-    marker = (DRY_ERASE){.xpos = 10, .ypos = 10, .xdist = -3, .ydist = 0, .dir = RIGHT};
-    eraser = (DRY_ERASE){.xpos = 10, .ypos = 10, .xdist = -3, .ydist = 0, .dir = RIGHT, .step = -3};
-    board[10][10] = RIGHT;
+    int start_x = get_random() % 15;
+    int start_y = get_random() % 20;
+
+    marker = (DRY_ERASE){.xpos = start_x, .ypos = start_y, .xdist = -3, .ydist = 0, .dir = RIGHT};
+    eraser = (DRY_ERASE){.xpos = start_x, .ypos = start_y, .xdist = -3, .ydist = 0, .dir = RIGHT, .step = -3};
+    board[start_x][start_y] = RIGHT;
+    delay = 60;
 
     place_apple();
 
