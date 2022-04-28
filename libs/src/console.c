@@ -129,15 +129,16 @@ static char *_read_io_word(unsigned int max_len) {
     unsigned int ptr_len = 0;
     char buffer[READ_IO_BUFFER];
     char backslash_buffer[3];
-    u8 len = 0, bpos = 3;
+    u8 len = 0, bpos = 3, bmax = 3;
     bool quoted = false, backslash = false;
 
     char c = _get_non_whitespace();
     for (;;) {
         if (backslash) {
+            bmax = 3;
             backslash_buffer[0] = c;
             backslash_buffer[1] = __io_getchar();
-            backslash_buffer[2] = backslash_buffer[1] == '\n' ? 0 : __io_getchar();
+            backslash_buffer[2] = backslash_buffer[1] == '\n' ? bmax = 2, 0 : __io_getchar();
             int length = _backslash_escape(backslash_buffer);
             if (!length) {
                 buffer[len++] = '\\';
@@ -148,14 +149,11 @@ static char *_read_io_word(unsigned int max_len) {
             bpos = length;
             backslash = false;
         } else if (c == '"') {
-            quoted = true;
+            quoted = !quoted;
         } else {
             buffer[len++] = c;
 
-            if (quoted && c == '"') {
-                quoted = false;
-                len--;
-            } else if ((!quoted && c == ' ') || c == '\n') {
+            if (!quoted && (c == ' ' || c == '\n')) {
                 break;
             } else if (c == '\\') {
                 backslash = true;
@@ -177,7 +175,7 @@ static char *_read_io_word(unsigned int max_len) {
             break;
         }
 
-        if (bpos < 3)
+        if (bpos < bmax)
             c = backslash_buffer[bpos++];
         else
             c = __io_getchar();

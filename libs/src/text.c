@@ -391,7 +391,6 @@ void __io_putchar(unsigned char c) {
                 *current_column = escape_num[1] - 1;
                 goto fake_putchar_end_escape_movement;
             } else if (c == 'J' || c == 'K') {
-                // TODO: clear buffer for other codes
                 if (escape_num[0] == 2) {
                     if (c == 'J') {
                         blank_screen();
@@ -409,15 +408,29 @@ void __io_putchar(unsigned char c) {
                     for (int i = *current_column; i < COLUMNS; i++) {
                         _write_char(' ', *current_line, i, 0, color);
                     }
-                    if (c == 'J')
+                    if (use_buffer)
+                        memset(screen_buffer + *current_line * COLUMNS + *current_column, 0,
+                               COLUMNS - *current_column);
+                    if (c == 'J') {
                         blank_line_to_line(*current_line + 1, LINES - 1);
+                        if (use_buffer)
+                            if (*current_line != LINES - 1)
+                                memset(screen_buffer + (*current_line + 1) * COLUMNS, 0,
+                                       (LINES - *current_line - 1) * COLUMNS);
+                    }
                 } else if (escape_num[0] == 1) {
                     u16 color = _lookup_color(0, false);
                     for (int i = 0; i < *current_column; i++) {
                         _write_char(' ', *current_line, i, 0, color);
                     }
-                    if (c == 'J')
+                    if (use_buffer)
+                        memset(screen_buffer + *current_line * COLUMNS, 0, *current_column);
+                    if (c == 'J') {
                         blank_line_to_line(0, *current_line - 1);
+                        if (use_buffer)
+                            if (*current_line)
+                                memset(screen_buffer, 0, *current_line * COLUMNS);
+                    }
                 }
                 goto fake_putchar_end_escape;
             } else if (c == 'S' || c == 'T') {
@@ -440,7 +453,9 @@ void __io_putchar(unsigned char c) {
         escape_index = 0;
         memset(escape_num, 0, sizeof escape_num);
     } else {
-        if (c >= 0x20) {
+        if (c >= 0x7f) {
+            // not valid ignore
+        } else if (c >= 0x20) {
             _write_char(c, *current_line, *current_column, f_color, b_color);
             ++*current_column;
         } else {
@@ -510,6 +525,11 @@ void init_text(bool use_buffer) {
     init_lcd_spi();
     SPI->CR2 &= ~SPI_CR2_TXDMAEN;
 
+    RCC->APB2ENR |= RCC_APB2ENR_TIM16EN;
+    TIM16->PSC = 1000;
+    TIM16->ARR = 60000;
+    TIM16->CR1 |= TIM_CR1_CEN;
+
     set_screen_text_buffer(use_buffer);
 
     init_screen(3);
@@ -538,6 +558,39 @@ static int8_t buffer_write_pos = -1, buffer_max_write_pos = -1;
 static int8_t buffer_read_pos;
 static bool buffer_ready = false;
 
+static void _swap_colors(void) {
+    u16 temp = b_color;
+    b_color = f_color;
+    f_color = temp;
+}
+
+static void _undraw_cursor(void) {
+    if (buffer_write_pos == buffer_max_write_pos)
+        __io_putchar(' ');
+    else if (input_buffer[buffer_write_pos + 1] < ' ')
+        __io_putchar('^');
+    else
+        __io_putchar(input_buffer[buffer_write_pos + 1]);
+    __io_putchar('\b');
+}
+
+static void _draw_cursor(void) {
+    if (TIM16->CNT > 30000) {
+        _undraw_cursor();
+        return;
+    }
+
+    _swap_colors();
+    if (buffer_write_pos == buffer_max_write_pos)
+        __io_putchar(' ');
+    else if (input_buffer[buffer_write_pos + 1] < ' ')
+        __io_putchar('^');
+    else
+        __io_putchar(input_buffer[buffer_write_pos + 1]);
+    _swap_colors();
+    __io_putchar('\b');
+}
+
 static void _echo_input(char c) {
     if (!c)
         return;
@@ -552,8 +605,6 @@ static void _echo_input(char c) {
             __io_putchar('\b');
         }
         __io_putchar('\b');
-        __io_putchar(' ');
-        __io_putchar('\b');
     } else if (c <= '\037' && c != '\n') {
         __io_putchar('^');
         __io_putchar(c + 'A' - 1);
@@ -563,6 +614,8 @@ static void _echo_input(char c) {
 }
 
 static void _process_input_char(char c) {
+    _undraw_cursor();
+
     if (c == '\003')        // ^C
         exit(143);          // SIGTERM
     else if (c == '\004') { // ^D (EOF)
@@ -588,29 +641,46 @@ static void _process_input_char(char c) {
                 buffer_write_pos--;
                 buffer_max_write_pos--;
             }
-            return;
+        } else if (c != 0x7f) {
+            input_buffer[++buffer_write_pos] = c;
+            buffer_max_write_pos++;
         }
-        input_buffer[++buffer_write_pos] = c;
-        buffer_max_write_pos++;
     } else {
         if (c == '\b') {
             if (buffer_write_pos > -1) {
+                _echo_input('\b');
+
                 char *pos = input_buffer + buffer_write_pos;
                 int len = buffer_max_write_pos - buffer_write_pos;
                 memmove(pos, pos + 1, len);
                 buffer_max_write_pos--;
                 buffer_write_pos--;
 
-                __io_putchar('\b');
                 int16_t initial_col = *current_column;
                 int16_t initial_line = *current_line;
                 for (int i = 1; i <= len; i++) {
                     _echo_input(input_buffer[buffer_write_pos + i]);
                 }
                 __io_putchar(' ');
+                __io_putchar(' ');
                 *current_column = initial_col;
                 *current_line = initial_line;
             }
+        } else if (c == 0x7f) {
+            char *pos = input_buffer + buffer_write_pos + 1;
+            int len = buffer_max_write_pos - buffer_write_pos;
+            memmove(pos, pos + 1, len);
+            buffer_max_write_pos--;
+
+            int16_t initial_col = *current_column;
+            int16_t initial_line = *current_line;
+            for (int i = 1; i < len; i++) {
+                _echo_input(input_buffer[buffer_write_pos + i]);
+            }
+            __io_putchar(' ');
+            __io_putchar(' ');
+            *current_column = initial_col;
+            *current_line = initial_line;
         } else if (is_in_insert_mode()) {
             char *pos = input_buffer + buffer_write_pos;
             int len = buffer_max_write_pos - buffer_write_pos;
@@ -630,18 +700,35 @@ static void _process_input_char(char c) {
             *current_line = initial_line;
         } else {
             _echo_input(c);
-            input_buffer[++buffer_write_pos] = c;
+            buffer_write_pos++;
+            if ((c < ' ') ^ (input_buffer[buffer_write_pos] < ' ')) {
+                int16_t initial_col = *current_column;
+                int16_t initial_line = *current_line;
+                for (int i = 1; i <= buffer_max_write_pos - buffer_write_pos; i++) {
+                    _echo_input(input_buffer[buffer_write_pos + i]);
+                }
+                __io_putchar(' ');
+                *current_column = initial_col;
+                *current_line = initial_line;
+            }
+            input_buffer[buffer_write_pos] = c;
         }
     }
+
+    _draw_cursor();
 }
 
 unsigned char __io_getchar(void) {
     u8 escape_state = 0;
 
     while (!buffer_ready) {
+        _draw_cursor();
+
         char c = get_keyboard_character();
         if (!c)
             continue;
+
+        TIM16->CNT = 0;
 
         if (escape_state == 1) {
             if (c == '[') {
@@ -660,17 +747,29 @@ unsigned char __io_getchar(void) {
             } else if (c == 'B') { // down
                 // ignore for now
             } else if (c == 'C') { // right
+                _undraw_cursor();
                 if (buffer_write_pos < buffer_max_write_pos) {
                     __io_putchar('\033');
                     __io_putchar('[');
                     __io_putchar('C');
+                    if (input_buffer[buffer_write_pos + 1] < ' ') {
+                        __io_putchar('\033');
+                        __io_putchar('[');
+                        __io_putchar('C');
+                    }
                     buffer_write_pos++;
                 }
+                _draw_cursor();
             } else if (c == 'D') { // left
+                _undraw_cursor();
                 if (buffer_write_pos >= 0) {
                     __io_putchar('\b');
+                    if (input_buffer[buffer_write_pos] < ' ') {
+                        __io_putchar('\b');
+                    }
                     buffer_write_pos--;
                 }
+                _draw_cursor();
             } else {
                 _process_input_char('\033');
                 _process_input_char('[');

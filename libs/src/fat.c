@@ -267,6 +267,9 @@ void ls(struct FATFile *file, uint8_t sd_buffer[512]) {
                 continue;
 
             printf("%8lu  ", ent->file_size);
+            if (ent->attributes & 0x10) {
+                printf("\033[36m");
+            }
 
             if (LFN) {
                 bool loaded_sector = false;
@@ -312,7 +315,7 @@ void ls(struct FATFile *file, uint8_t sd_buffer[512]) {
                 }
             }
 
-            putchar('\n');
+            puts("\033[m");
 
             // uint32_t cluster = ent->cluster_high << 16;
             // cluster |= ent->cluster_low;
