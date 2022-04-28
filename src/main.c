@@ -11,19 +11,21 @@
 #include "types.h"
 
 #include "snake.h"
+#include "tetris.h"
 
 int main() {
-    start_console(true);
+    // start_console(true);
 
-    for (;;) {
-        update_console();
-    }
+    // for (;;) {
+    //     update_console();
+    // }
 
     // start_audio();
 
     // _wait_for_key();
 
-    // run_snake();
+    run_snake();
+    // run_tetris();
 
     return 0;
 }
