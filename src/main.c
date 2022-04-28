@@ -10,9 +10,11 @@
 #include "text.h"
 #include "types.h"
 
+#include "ants.h"
 #include "breakout.h"
 #include "snake.h"
 #include "tetris.h"
+#include "touhou.h"
 
 int main() {
     // start_console(true);
@@ -27,7 +29,9 @@ int main() {
 
     // run_tetris();
     // run_snake();
-    run_breakout();
+    // run_breakout();
+    // run_touhou();
+    run_ants();
 
     return 0;
 }
