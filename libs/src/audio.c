@@ -30,7 +30,7 @@ static void _verify_file_open(void) {
 
         init_fat((u8 *)sd_buffer);
         open_root(&sd_file);
-        if (open("audiofilename", &sd_file, sd_buffer)) {
+        if (open("audiofilename", &sd_file, (u8 *)sd_buffer)) { // FIXME: file name
             exit(2); // issue
         }
     }
@@ -40,7 +40,7 @@ static void _synchronous_load_sector(int index) {
     _verify_file_open();
     if (index >= sd_last_boundary + 128) {
         sd_last_boundary += 128;
-        get_file_next_sector(&sd_file, sd_buffer);
+        get_file_next_sector(&sd_file, (u8 *)sd_buffer);
     }
 }
 
@@ -56,7 +56,7 @@ static bool _read_word(u32 *val, int index) {
 
     if (index >= sd_last_boundary + 128) {
         sd_last_boundary += 128;
-        get_file_next_sector_dma(&sd_file, sd_buffer, &sd_done);
+        get_file_next_sector_dma(&sd_file, (u8 *)sd_buffer, &sd_done);
         return true;
     }
 
@@ -177,7 +177,7 @@ void init_wavetable_hybrid2(void) {
 }
 
 void read_header(void) {
-    _synchronous_load_sector();
+    _synchronous_load_sector(0);
     end_t = ((u64)sd_buffer[1] << 32) | sd_buffer[0];
     u64 channels = ((u64)sd_buffer[3] << 32) | sd_buffer[2];
     n_channels = channels & 0xff;
