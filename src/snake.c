@@ -40,10 +40,10 @@ const extern u16 marker_sprite[];
 const extern u16 eraser_sprite[];
 const extern u16 apple[];
 
-int end_game = 0;
-int score = 0;
+static int end_game = 0;
+static int score = 0;
 
-void init_background() {
+static void init_background() {
     for (int x = 0; x < 240; x += 16)
         for (int y = 0; y < 320; y += 16)
             gpu_buffer_add(x, y, black, 0);
@@ -64,17 +64,17 @@ typedef struct {
     u8 step;
 } DRY_ERASE;
 
-DRY_ERASE marker;
-DRY_ERASE eraser;
-int delay;
+static DRY_ERASE marker;
+static DRY_ERASE eraser;
+static int delay;
 
 DIRECTION board[15][20];
 
-DIRECTION move_buffer[4] = {INVALID, INVALID, INVALID, INVALID};
-int move_buffer_start;
-int move_buffer_end;
+static DIRECTION move_buffer[4] = {INVALID, INVALID, INVALID, INVALID};
+static int move_buffer_start;
+static int move_buffer_end;
 
-void add_move_buffer(DIRECTION dir) {
+static void add_move_buffer(DIRECTION dir) {
     if ((move_buffer_end + 1) % 4 == move_buffer_start)
         return;
     move_buffer[move_buffer_end] = dir;
@@ -89,7 +89,7 @@ DIRECTION get_next_move() {
     return retval;
 }
 
-void place_apple() {
+static void place_apple() {
     int new_x = get_random() % 15;
     int new_y = get_random() % 20;
 
@@ -103,7 +103,7 @@ void place_apple() {
     gpu_buffer_add(new_x * 16 + 4, new_y * 16 + 4, apple, 0x8820);
 }
 
-void draw_marker() {
+static void draw_marker() {
     switch (marker.dir) {
     case RIGHT:
         marker.xdist++;
@@ -186,7 +186,7 @@ void draw_marker() {
                    marker.dir == UP || marker.dir == DOWN ? 0x9004 : 0x8140);
 }
 
-void draw_eraser() {
+static void draw_eraser() {
     switch (eraser.dir) {
     case RIGHT:
         eraser.xdist++;

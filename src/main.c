@@ -10,6 +10,7 @@
 #include "text.h"
 #include "types.h"
 
+#include "breakout.h"
 #include "snake.h"
 #include "tetris.h"
 
@@ -24,8 +25,9 @@ int main() {
 
     // _wait_for_key();
 
-    run_snake();
     // run_tetris();
+    // run_snake();
+    run_breakout();
 
     return 0;
 }

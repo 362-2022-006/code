@@ -1,7 +1,11 @@
 # USER_FILES="src/main.c src/tetris.c"
-# USER_DATA="src/images/tetris-sprites.c src/sounds/test-sound.c"
-USER_FILES="src/main.c src/snake.c"
-USER_DATA="src/images/snake-sprites.c src/sounds/test-sound.c"
+# USER_DATA="src/images/tetris-sprites.c"
+# USER_FILES="src/main.c src/snake.c"
+# USER_DATA="src/images/snake-sprites.c"
+USER_FILES="src/main.c src/breakout.c"
+USER_DATA="src/images/breakout-sprites.c"
+
+USER_SOUNDS="src/sounds/test-sound.c"
 
 # OPTIMIZE="-g"
 # OPTIMIZE="-O3 -g"
@@ -11,7 +15,7 @@ CORTEX_FLAGS="-mlittle-endian -mthumb -mthumb-interwork -mcpu=cortex-m0 -fsingle
 CFLAGS="-std=gnu99 -Wall -Wdouble-promotion -Wno-char-subscripts $CORTEX_FLAGS"
 
 CORTEX_FILES="support/syscalls.c support/startup_stm32.s support/config.c"
-FILES="$CORTEX_FILES $USER_FILES $USER_DATA libs/src/*.c libs/src/*.s"
+FILES="$CORTEX_FILES $USER_FILES $USER_DATA $USER_SOUNDS libs/src/*.c libs/src/*.s"
 
 SAVE_FLAGS="-save-temps -o build/main.elf"
 INCLUDE_FLAGS="-I support/ -I libs/include/"
