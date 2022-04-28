@@ -55,6 +55,8 @@ static int paddle_vel;
 #define BALL_DIR_X_START 0
 #define BALL_DIR_Y_START 1
 
+#define MAX_VEL 8
+
 const extern u16 ball_sprite[];
 static int ball_x;
 static int ball_y;
@@ -86,6 +88,8 @@ static u16 bricks[(BRICK_END - BRICK_START) / 8];
 // 1000 0010 0000 1000
 #define POINT_META 0x8104
 const u16 point[] = {0xffff, 0xffff, 0xffff, 0xffff};
+
+void draw_frame(void);
 
 static void init_background() {
     for (int x = 0; x < 240; x += 16)
@@ -159,29 +163,29 @@ static void draw_ball() {
     static int x_state = 0;
     static int y_state = 0;
 
-    if (ball_vel_x > 8)
-        ball_vel_x = 8;
+    if (ball_vel_x > MAX_VEL)
+        ball_vel_x = MAX_VEL;
     else if (ball_vel_x < 0)
         ball_vel_x = 0;
 
-    if (ball_vel_y > 8)
-        ball_vel_y = 8;
+    if (ball_vel_y > MAX_VEL)
+        ball_vel_y = MAX_VEL;
     else if (ball_vel_y < 0)
         ball_vel_y = 0;
 
     x_state += ball_vel_x;
     y_state += ball_vel_y;
 
-    if (x_state >> 3) {
-        x_state -= 8;
+    if (x_state / MAX_VEL) {
+        x_state -= MAX_VEL;
         ball_x += ball_dir_x;
 
         if (ball_x <= 0 || ball_x >= SCREEN_X - BALL_SIZE - BALL_PADDING)
             ball_dir_x *= -1;
     }
 
-    if (y_state >> 3) {
-        y_state -= 8;
+    if (y_state / MAX_VEL) {
+        y_state -= MAX_VEL;
         ball_y += ball_dir_y;
 
         if (ball_y + BALL_SIZE + BALL_PADDING >= PADDLE_Y &&
@@ -194,33 +198,33 @@ static void draw_ball() {
             ball_y = PADDLE_Y - BALL_SIZE - BALL_PADDING;
 
             if (ball_x - paddle_x < (PADDLE_WIDTH / 8) - (BALL_SIZE + BALL_PADDING) / 2) {
-                ball_vel_x = 4;
+                ball_vel_x = MAX_VEL;
                 ball_dir_x = -1;
             } else if (ball_x - paddle_x <
                        (PADDLE_WIDTH / 8) * 2 - (BALL_SIZE + BALL_PADDING) / 2) {
-                ball_vel_x = 3;
+                ball_vel_x = MAX_VEL / 3 * 4;
                 ball_dir_x = -1;
             } else if (ball_x - paddle_x <
                        (PADDLE_WIDTH / 8) * 3 - (BALL_SIZE + BALL_PADDING) / 2) {
-                ball_vel_x = 2;
+                ball_vel_x = MAX_VEL / 2;
                 ball_dir_x = -1;
             } else if (ball_x - paddle_x < (PADDLE_WIDTH / 2) - (BALL_SIZE + BALL_PADDING) / 2) {
-                ball_vel_x = 1;
+                ball_vel_x = MAX_VEL / 4;
                 ball_dir_x = -1;
             } else if (ball_x - paddle_x <
                        (PADDLE_WIDTH / 8) * 5 - (BALL_SIZE + BALL_PADDING) / 2) {
-                ball_vel_x = 1;
+                ball_vel_x = MAX_VEL / 4;
                 ball_dir_x = 1;
             } else if (ball_x - paddle_x <
                        (PADDLE_WIDTH / 8) * 6 - (BALL_SIZE + BALL_PADDING) / 2) {
-                ball_vel_x = 2;
+                ball_vel_x = MAX_VEL / 2;
                 ball_dir_x = 1;
             } else if (ball_x - paddle_x <
                        (PADDLE_WIDTH / 8) * 7 - (BALL_SIZE + BALL_PADDING) / 2) {
-                ball_vel_x = 3;
+                ball_vel_x = MAX_VEL / 3 * 4;
                 ball_dir_x = 1;
             } else {
-                ball_vel_x = 4;
+                ball_vel_x = MAX_VEL;
                 ball_dir_x = 1;
             }
 
@@ -248,7 +252,9 @@ static void draw_ball() {
                 // redraw both
                 gpu_buffer_add(paddle_x - PADDLE_PADDING, PADDLE_Y, paddle_sprite, PADDLE_META);
                 gpu_buffer_add(ball_x, ball_y, ball_sprite, BALL_META);
+                unhook_timer();
                 wait_for_move();
+                hook_timer(FRAMERATE, draw_frame);
             } else {
                 gpu_buffer_add(SCREEN_X / 2 - 8, SCREEN_Y / 2 - 8, l_sprite, 0);
                 end_game = 1;
@@ -300,8 +306,6 @@ static void draw_paddle() {
     // -2 because there are 2 black pixels on either side
     gpu_buffer_add(paddle_x - PADDLE_PADDING, PADDLE_Y, paddle_sprite, PADDLE_META);
 }
-
-void draw_frame(void);
 
 void breakout_paused(void) {
     const KeyEvent *event;
@@ -367,7 +371,8 @@ run_breakout_start:
     ball_dir_y = BALL_DIR_Y_START;
     ball_vel_x = BALL_VEL_X_START;
 
-    draw_frame();
+    draw_paddle();
+    draw_ball();
     difficulty = get_difficulty();
     ball_vel_y = BALL_VEL_Y_START + difficulty;
     hook_timer(FRAMERATE, draw_frame);
