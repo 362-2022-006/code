@@ -18,7 +18,7 @@ CORTEX_FILES="support/syscalls.c support/startup_stm32.s support/config.c"
 FILES="$CORTEX_FILES $USER_FILES $USER_DATA $USER_SOUNDS libs/src/*.c libs/src/*.s"
 
 SAVE_FLAGS="-save-temps -o build/main.elf"
-INCLUDE_FLAGS="-I support/ -I libs/include/"
+INCLUDE_FLAGS="-I support/ -I libs/include/ -I src/include"
 
 OPEN_OCD_FLAGS="-f interface/stlink.cfg -f target/stm32f0x.cfg"
 
