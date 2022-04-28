@@ -10,7 +10,7 @@
         DMA->CNDTR = 2;                                                                            \
     } while (0)
 
-#define GPU_FIFO_SIZE 8
+#define GPU_FIFO_SIZE 16
 static GPU_FIFO gpu_fifo[GPU_FIFO_SIZE];
 static volatile u8 gpu_fifo_start = 0; // first valid data
 static volatile u8 gpu_fifo_end = 0;   // point to insert data
