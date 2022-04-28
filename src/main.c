@@ -10,20 +10,28 @@
 #include "text.h"
 #include "types.h"
 
+#include "ants.h"
+#include "breakout.h"
 #include "snake.h"
+#include "tetris.h"
+#include "touhou.h"
 
 int main() {
-    start_console(true);
+    // start_console(true);
 
-    for (;;) {
-        update_console();
-    }
+    // for (;;) {
+    //     update_console();
+    // }
 
     // start_audio();
 
     // _wait_for_key();
 
+    // run_tetris();
     // run_snake();
+    // run_breakout();
+    // run_touhou();
+    run_ants();
 
     return 0;
 }
