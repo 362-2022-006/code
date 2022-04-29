@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "audio.h"
 #include "console.h"
 #include "delay.h"
 #include "fat.h"
@@ -75,6 +76,7 @@ const static struct {
               {"mix_random", mix_random},
               {"open", open},
               {"open_root", open_root},
+              {"play_audio", play_audio},
               {"print_console_prompt", print_console_prompt},
               {"printf", printf},
               {"putchar", putchar},
@@ -86,6 +88,7 @@ const static struct {
               {"reset_file", reset_file},
               {"set_lcd_flag", set_lcd_flag},
               {"set_screen_text_buffer", set_screen_text_buffer},
+              {"start_audio", start_audio},
               {"start_console", start_console},
               {"strlen", strlen},
               {"unhook_timer", unhook_timer},

@@ -80,7 +80,11 @@ function_list = [
     'start_console',
     'update_console',
     'print_console_prompt',
-    'getchar'
+    'getchar',
+
+    # audio
+    'play_audio',
+    'start_audio'
 ]
 
 asm_file = '''
