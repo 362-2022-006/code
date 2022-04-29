@@ -5,7 +5,7 @@
 typedef struct {
     u16 x;
     u16 y;
-    const u16 *data;
+    const u8 *data;
     u16 meta;
     /*
     bits 15-14:

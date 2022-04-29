@@ -30,8 +30,8 @@ int main() {
     // run_tetris();
     // run_snake();
     // run_breakout();
-    // run_touhou();
-    run_ants();
+    run_touhou();
+    // run_ants();
 
     return 0;
 }
