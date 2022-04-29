@@ -13,7 +13,7 @@ uint8_t send_cmd(uint8_t cmd, uint32_t arg);
 
 bool read_sector(uint8_t *buf, uint32_t sector);
 bool write_sector(uint8_t *buf, uint32_t sector);
-bool read_sector_dma(uint8_t *buf, uint32_t sector, volatile bool *done);
+bool read_sector_dma(uint8_t *buf, uint32_t sector);
 
 bool read_mbr(uint32_t *partition_start, uint32_t *partition_length);
 

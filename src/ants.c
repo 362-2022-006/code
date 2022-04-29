@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stm32f0xx.h>
 
 #include "gpu.h"
@@ -33,7 +34,7 @@ typedef struct {
     u8 dead;
 } ANT;
 
-static ANT ants[MAX_ANTS];
+static ANT *ants;
 
 const extern u16 black[];
 const extern u16 ant_sprite[];
@@ -45,7 +46,7 @@ static void init_background() {
 }
 
 void init_ants() {
-    for (int i = 0; i < sizeof ants / sizeof ants[0]; i++) {
+    for (int i = 0; i < MAX_ANTS; i++) {
         ants[i].dead = 1;
     }
 }
@@ -70,7 +71,7 @@ void add_random_ant(ANT *cur) {
 }
 
 static void update_ants(void (*spawn_fn)(ANT *)) {
-    for (int i = 0; i < sizeof ants / sizeof ants[0]; i++) {
+    for (int i = 0; i < MAX_ANTS; i++) {
         ANT *cur = &(ants[i]);
 
         if (!(cur->dead)) {
@@ -107,13 +108,18 @@ static void update_ants(void (*spawn_fn)(ANT *)) {
 void draw_frame(void) { update_ants(add_random_ant); }
 
 int run_ants() {
+    ants = malloc(MAX_ANTS * sizeof(*ants));
+
     init_gpu();
     init_background();
     init_ants();
     // hook_timer(FRAMERATE, draw_frame);
-    while (true) {
+    for (;;) {
         update_ants(add_random_ant);
         // asm volatile("wfi");
     }
+
+    free(ants);
+
     return 0;
 }

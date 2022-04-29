@@ -1,7 +1,9 @@
 #include <math.h>
+#include <stdlib.h>
 #include <stm32f0xx.h>
 #include <string.h>
 
+#include "fat.h"
 #include "types.h"
 
 #define N 1024
@@ -18,22 +20,52 @@ short int wavetable[N];
 
 extern u8 test_sound[];
 
-u32 read_word(int index) {
+static u32 *sd_buffer;
+static bool sd_buffer_initialized = false;
+static struct FATFile sd_file;
+static int sd_last_boundary = -128;
+static volatile bool sd_done = true;
+
+static void _verify_file_open(void) {
+    if (!sd_buffer_initialized) {
+        sd_buffer = malloc(512);
+
+        init_fat((u8 *)sd_buffer);
+        open_root(&sd_file);
+        if (open("audio.nmid", &sd_file, (u8 *)sd_buffer)) {
+            exit(2); // issue
+        }
+
+        sd_buffer_initialized = true;
+    }
+}
+
+static void _synchronous_load_sector(int index) {
+    _verify_file_open();
+    if (index >= sd_last_boundary + 128) {
+        sd_last_boundary += 128;
+        get_file_next_sector(&sd_file, (u8 *)sd_buffer);
+    }
+}
+
+static bool _read_word(u32 *val, int index) {
     // reads the word at a certain place in the document
     // code here should utilize the SD card reader and check for chunk completion
-    // NOTE: if cur_t == end_t, load from the beginning of the file
-    // if (index == 0)
-    //     return (u32)1000; // testing code
-    // if (index == 1)
-    //     return (u32)0; // testing code
-    // if (index % 2)
-    //     return (u32)0xFF4C00; // testing code
-    // else
-    //     return (u32)0xFFCC45; // testing code
 
-    u32 val;
-    memcpy(&val, test_sound + (index * 4), 4);
-    return val;
+    // if (!check_dma_read_complete()) {
+    //     return true;
+    // }
+
+    if (index >= sd_last_boundary + 128) {
+        sd_last_boundary += 128;
+        if (get_file_next_sector(&sd_file, (u8 *)sd_buffer) < 0) {
+            exit(3); // TODO: error
+        }
+        return true;
+    }
+
+    *val = sd_buffer[index - sd_last_boundary];
+    return false;
 }
 
 static int n_channels;
@@ -115,7 +147,14 @@ void TIM7_IRQHandler(void) {
     TIM7->CNT = 0;
     int dt = 0;
     while (!dt) {
-        dt = parse_command(read_word(idx));
+        u32 val;
+        if (_read_word(&val, idx)) {
+            // sector not loaded yet
+            TIM7->ARR = 1; // low value to try again soon, SD load takes ~2 ms
+            TIM7->CR1 |= TIM_CR1_CEN;
+            return;
+        }
+        dt = parse_command(val);
         cur_t += dt;
         idx++;
         if (cur_t >= end_t) {
@@ -157,8 +196,9 @@ void init_wavetable_hybrid2(void) {
 }
 
 void read_header(void) {
-    end_t = ((u64)read_word(1) << 32) | read_word(0);
-    channels = ((u64)read_word(3) << 32) | read_word(2);
+    _synchronous_load_sector(0);
+    end_t = ((u64)sd_buffer[1] << 32) | sd_buffer[0];
+    channels = ((u64)sd_buffer[3] << 32) | sd_buffer[2];
     n_channels = channels & 0xff;
     idx = 4;
 }

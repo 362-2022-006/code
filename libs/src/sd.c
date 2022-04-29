@@ -352,33 +352,8 @@ bool write_sector(uint8_t *buf, uint32_t sector) {
     return false;
 }
 
-volatile bool *dma_complete_flag;
-void DMA1_CH2_3_DMA2_CH1_2_IRQHandler(void) {
-    static bool state = 0;
-    static uint8_t crc[4];
-
-    DMA1->IFCR |= DMA_IFCR_CTCIF2; // acknowledge interrupt
-
-    if (!state) {
-        DMA1_Channel2->CCR &= ~DMA_CCR_EN;
-        DMA1_Channel2->CMAR = (uint32_t)crc;
-        DMA1_Channel2->CNDTR = 2;
-        DMA1_Channel2->CCR |= DMA_CCR_EN;
-    } else {
-        *dma_complete_flag = true;
-        DMA1_Channel2->CCR &= ~DMA_CCR_EN;
-        SD_SPI->CR1 &= ~SPI_CR1_SPE;
-        wait_for_spi();
-        SD_SPI->CR1 &= ~SPI_CR1_RXONLY;
-        SD_SPI->CR1 |= SPI_CR1_SPE;
-        discard_spi_DR();
-    }
-
-    state ^= 1;
-}
-
-bool read_sector_dma(uint8_t *buf, uint32_t sector, volatile bool *done) {
-    while (DMA1_Channel2->CCR & DMA_CCR_EN)
+bool read_sector_dma(uint8_t *buf, uint32_t sector) {
+    while (SD_DMA->CCR & DMA_CCR_EN)
         ;
 
     if (send_cmd(17, sector) != 0) {
@@ -388,10 +363,8 @@ bool read_sector_dma(uint8_t *buf, uint32_t sector, volatile bool *done) {
 
     receive_spi_no_wait();
 
-    DMA1_Channel2->CMAR = (uint32_t)buf;
-    DMA1_Channel2->CNDTR = 512;
-    *done = false;
-    dma_complete_flag = done;
+    SD_DMA->CMAR = (uint32_t)buf;
+    SD_DMA->CNDTR = 512;
 
     wait_for_spi();
     uint8_t received = get_spi();
@@ -406,7 +379,7 @@ bool read_sector_dma(uint8_t *buf, uint32_t sector, volatile bool *done) {
 
     SD_SPI->CR1 &= ~SPI_CR1_SPE;
     SD_SPI->CR1 |= SPI_CR1_RXONLY;
-    DMA1_Channel2->CCR |= DMA_CCR_EN;
+    SD_DMA->CCR |= DMA_CCR_EN;
     SD_SPI->CR1 |= SPI_CR1_SPE;
 
     return false;

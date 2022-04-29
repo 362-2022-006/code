@@ -209,6 +209,56 @@ int get_file_next_sector(struct FATFile *file, uint8_t buffer[512]) {
     }
 }
 
+static bool in_dma_transfer = false;
+
+bool get_file_next_sector_dma(struct FATFile *file, uint8_t buffer[512]) {
+    if ((file->next_cluster & 0x0FFFFFF0) == 0x0FFFFFF0) {
+        return true;
+    }
+
+    uint32_t sector = file_get_sector(file);
+    _file_increment_sector(file);
+
+    if (!file->directory) {
+        if (file->length_remaining < 512) {
+            file->length_remaining = 0;
+        } else {
+            file->length_remaining -= 512;
+        }
+    }
+
+    if (read_sector_dma(buffer, sector)) {
+        close_fat();
+        return true;
+    }
+
+    in_dma_transfer = true;
+
+    return false;
+}
+
+bool check_dma_read_complete(void) {
+    if (!in_dma_transfer)
+        return true;
+    if (SD_DMA->CNDTR == 0) {
+        SD_DMA->CCR &= ~DMA_CCR_EN;
+        SD_SPI->CR1 &= ~SPI_CR1_SPE;
+        wait_for_spi();
+        SD_SPI->CR1 &= ~SPI_CR1_RXONLY;
+        SD_SPI->CR1 |= SPI_CR1_SPE;
+        discard_spi_DR();
+
+        // read CRC
+        for (int i = 0; i < 4; i++)
+            receive_spi();
+
+        in_dma_transfer = false;
+
+        return true;
+    }
+    return false;
+}
+
 void reset_file(struct FATFile *file) {
     file->next_cluster = file->start_cluster;
     file->next_sector = 0;

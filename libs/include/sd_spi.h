@@ -7,6 +7,7 @@
 #include "types.h"
 
 #define SD_SPI SPI2
+#define SD_DMA DMA1_Channel4
 
 void init_spi(void);
 

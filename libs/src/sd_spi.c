@@ -30,11 +30,10 @@ void init_spi(void) {
 
     // DMA
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
-    DMA1_Channel2->CCR &= ~DMA_CCR_EN;
-    DMA1_Channel2->CCR = DMA_CCR_TCIE | DMA_CCR_MINC;
-    DMA1_Channel2->CPAR = (uint32_t)&SD_SPI->DR;
-    DMA1_Channel2->CNDTR = 0;
-    NVIC_EnableIRQ(DMA1_Ch2_3_DMA2_Ch1_2_IRQn);
+    SD_DMA->CCR &= ~DMA_CCR_EN;
+    SD_DMA->CCR = DMA_CCR_MINC;
+    SD_DMA->CPAR = (uint32_t)&SD_SPI->DR;
+    SD_DMA->CNDTR = 0;
     SD_SPI->CR2 |= SPI_CR2_RXDMAEN;
 }
 

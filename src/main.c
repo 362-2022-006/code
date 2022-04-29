@@ -17,13 +17,13 @@
 #include "touhou.h"
 
 int main() {
-    // start_console(true);
+    start_console(true);
 
-    // for (;;) {
-    //     update_console();
-    // }
+    start_audio();
 
-    // start_audio();
+    for (;;) {
+        update_console();
+    }
 
     // _wait_for_key();
 
