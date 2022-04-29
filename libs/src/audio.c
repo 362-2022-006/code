@@ -33,7 +33,7 @@ static void _verify_file_open(void) {
         init_fat((u8 *)sd_buffer);
         open_root(&sd_file);
         if (open("audio.nmid", &sd_file, (u8 *)sd_buffer)) {
-            exit(2); // issue
+            exit(100002); // issue
         }
 
         sd_buffer_initialized = true;
@@ -59,9 +59,19 @@ static bool _read_word(u32 *val, int index) {
     if (index >= sd_last_boundary + 128) {
         sd_last_boundary += 128;
         if (get_file_next_sector(&sd_file, (u8 *)sd_buffer) < 0) {
-            exit(3); // TODO: error
+            exit(100003);
         }
         return true;
+    } else if (index < sd_last_boundary) {
+        if (index < 128) {
+            sd_last_boundary = 0;
+            reset_file(&sd_file);
+            if (get_file_next_sector(&sd_file, (u8 *)sd_buffer) < 0) {
+                exit(100003);
+            }
+        } else {
+            exit(100004);
+        }
     }
 
     *val = sd_buffer[index - sd_last_boundary];
@@ -77,17 +87,17 @@ int parse_command(u32 command) {
     int volume = command & 0xFF;
     int ch_sect = channel * (CHANNELS / n_channels);
 
-    if (note_on && (channels & (0xff00<<channel))) {
+    if (note_on && (channels & (0xff00 << channel))) {
         int i = ch_sect;
-        for (; i < ch_sect + CHANNELS/n_channels; i++) {
+        for (; i < ch_sect + CHANNELS / n_channels; i++) {
             if (!on[i])
                 break;
         }
         notes[i] = (volume << 8) | note;
         on[i] = 1;
-    } else if (channels & (0xff00<<channel)) {
+    } else if (channels & (0xff00 << channel)) {
         int i = ch_sect;
-        for (; i < ch_sect + CHANNELS/n_channels; i++) {
+        for (; i < ch_sect + CHANNELS / n_channels; i++) {
             if ((notes[i] & 0xFF) == note)
                 break;
         }
@@ -104,15 +114,18 @@ void TIM6_DAC_IRQHandler() {
             pos[i] += (step[notes[i] & 0xff]);
             if (pos[i] >= N << 16)
                 pos[i] -= N << 16;
-            out += ((((wavetable[(pos[i]>>16)] * ((notes[i] & 0xff00) >> 8)) >> 8) * fade[i]) >> 5);
+            out +=
+                ((((wavetable[(pos[i] >> 16)] * ((notes[i] & 0xff00) >> 8)) >> 8) * fade[i]) >> 5);
             fade[i] = fade[i] + 1 < 32 ? fade[i] + 1 : 32;
-        } else if (notes[i]){
+        } else if (notes[i]) {
             pos[i] += (step[notes[i] & 0xff]);
             if (pos[i] >= N << 16)
                 pos[i] -= N << 16;
-            out += ((((wavetable[(pos[i]>>16)] * ((notes[i] & 0xff00) >> 8)) >> 8) * fade[i]) >> 5);
+            out +=
+                ((((wavetable[(pos[i] >> 16)] * ((notes[i] & 0xff00) >> 8)) >> 8) * fade[i]) >> 5);
             fade[i] = fade[i] - 1 > 0 ? fade[i] - 1 : 0;
-            if (fade[i] == 0) notes[i] = 0;
+            if (fade[i] == 0)
+                notes[i] = 0;
         } else {
             pos[i] = 0;
         }
@@ -157,7 +170,7 @@ void TIM7_IRQHandler(void) {
         dt = parse_command(val);
         cur_t += dt;
         idx++;
-        if (cur_t >= end_t) {
+        if (cur_t + 1 >= end_t) {
             idx = 4;
             for (int i = 0; i < CHANNELS; i++) {
                 notes[i] = 0;
@@ -190,7 +203,7 @@ void init_dac(void) {
 
 void init_wavetable_hybrid2(void) {
     int x;
-    for(x=0; x<N; x++) {
+    for (x = 0; x < N; x++) {
         wavetable[x] = 32767 * sin(2 * M_PI * x / N);
     }
 }
