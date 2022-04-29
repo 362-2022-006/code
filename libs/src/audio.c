@@ -10,7 +10,6 @@
 #define RATE 20000
 #include "step.h"
 
-#define TIME 5
 #define CHANNELS 8
 u16 notes[CHANNELS];
 u8 on[CHANNELS];
@@ -18,30 +17,24 @@ int fade[CHANNELS];
 int pos[CHANNELS] = {0};
 short int wavetable[N];
 
-extern u8 test_sound[];
+static int time_mult;
 
 static u32 *sd_buffer;
-static bool sd_buffer_initialized = false;
 static struct FATFile sd_file;
 static int sd_last_boundary = -128;
 static volatile bool sd_done = true;
 
-static void _verify_file_open(void) {
-    if (!sd_buffer_initialized) {
-        sd_buffer = malloc(512);
+static void _open_file(char *filename) {
+    sd_buffer = malloc(512);
 
-        init_fat((u8 *)sd_buffer);
-        open_root(&sd_file);
-        if (open("audio.nmid", &sd_file, (u8 *)sd_buffer)) {
-            exit(100002); // issue
-        }
-
-        sd_buffer_initialized = true;
+    init_fat((u8 *)sd_buffer);
+    open_root(&sd_file);
+    if (open(filename, &sd_file, (u8 *)sd_buffer)) {
+        exit(100002); // issue
     }
 }
 
 static void _synchronous_load_sector(int index) {
-    _verify_file_open();
     if (index >= sd_last_boundary + 128) {
         sd_last_boundary += 128;
         get_file_next_sector(&sd_file, (u8 *)sd_buffer);
@@ -181,7 +174,7 @@ void TIM7_IRQHandler(void) {
             dt = 0;
         }
     }
-    TIM7->ARR = (dt * TIME) - 1;
+    TIM7->ARR = (dt * time_mult) - 1;
     TIM7->CR1 |= TIM_CR1_CEN;
 }
 
@@ -216,10 +209,23 @@ void read_header(void) {
     idx = 4;
 }
 
-void start_audio(void) {
+static void _start(void) {
     read_header();
     init_wavetable_hybrid2();
     init_dac();
     init_tim6();
     init_tim7();
+}
+
+void start_audio(char *filename) {
+    _open_file(filename);
+    time_mult = 5;
+    _start();
+}
+
+void play_audio(struct FATFile file, int rate) {
+    sd_file = file;
+    sd_buffer = malloc(512);
+    time_mult = rate;
+    _start();
 }

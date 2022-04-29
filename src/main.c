@@ -19,11 +19,11 @@
 int main() {
     start_console(true);
 
-    start_audio();
-
     for (;;) {
         update_console();
     }
+
+    // start_audio("audio.nmid");
 
     // _wait_for_key();
 

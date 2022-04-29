@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "audio.h"
 #include "console.h"
 #include "fat.h"
 #include "keyboard.h"
@@ -279,6 +280,55 @@ static void _process_command(const char *command, bool no_more_input) {
                 }
             }
         }
+    } else if (!strcmp(command, "play")) {
+        if (no_more_input)
+            puts("not enough arguments");
+        else if (_update_current_file()) {
+            // puts("Could not initialize SD");
+        } else {
+            struct FATFile file;
+            int status = _read_path(&file);
+            if (status < 0) {
+                puts("Could not open file");
+            } else if (file.directory) {
+                puts("Is a directory");
+            } else {
+                int rate = 5;
+                if (status) {
+                    char *rate_str = _read_io_word(14);
+                    int index = 0;
+
+                    if (rate_str[1]) {
+                        rate = 0;
+                        while (rate_str[index + 1]) {
+                            if ('0' <= rate_str[index] && rate_str[index] <= '9') {
+                                rate *= 10;
+                                rate += rate_str[index] - '0';
+                            } else {
+                                rate = 0;
+                                puts("Rate must be a number");
+                                break;
+                            }
+                            index++;
+                        }
+                    }
+
+                    free(rate_str);
+                    if (rate > 0) {
+                        if (rate < 2)
+                            puts("Rate must be at least 2");
+                        else
+                            printf("Playing with rate %d\n", rate);
+                    }
+                }
+                if (rate >= 2) {
+                    play_audio(file, rate);
+                    for (;;) {
+                        get_keyboard_character();
+                    }
+                }
+            }
+        }
     } else if (!strcmp(command, "cd")) {
         if (_update_current_file()) {
             puts("Could not initialize SD");
@@ -352,6 +402,7 @@ static void _process_command(const char *command, bool no_more_input) {
         puts("\teject");
         puts("\thelp");
         puts("\tls [file]");
+        puts("\tplay file [rate]");
         puts("\trun file");
     } else if (!*command) {
         // empty, ignore
@@ -421,8 +472,9 @@ void print_console_prompt(void) {
 
 static bool _check_position(void *position) {
     if (position < sbrk(0)) {
-        // if the position where the code wants to be loaded is before the break, there could be
-        // important things in the way, do not continue to load the code and return error flag
+        // if the position where the code wants to be loaded is before the break, there
+        // could be important things in the way, do not continue to load the code and return
+        // error flag
         puts("Failed position check");
         return true;
     }
@@ -478,8 +530,8 @@ static bool _do_code(struct FATFile *file, int *status) {
     memmove(code_load_position, sd_buffer + 12, length - 12);
     code_load_position += length - 12;
 
-    // initialize .text, .rodata, .ARM.extab, .ARM, .preinit_array, .init_array, .fini_array,
-    // .data
+    // initialize .text, .rodata, .ARM.extab, .ARM, .preinit_array, .init_array,
+    // .fini_array, .data
     do {
         length = get_file_next_sector(file, code_load_position);
         code_load_position += length;
