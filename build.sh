@@ -4,12 +4,16 @@
 # USER_DATA="src/images/snake-sprites.c"
 # USER_FILES="src/main.c src/breakout.c"
 # USER_DATA="src/images/breakout-sprites.c"
-USER_FILES="src/main.c src/touhou.c"
-USER_DATA="src/images/touhou-sprites.c"
+# USER_FILES="src/main.c src/touhou.c"
+# USER_DATA="src/images/touhou-sprites.c"
 # USER_FILES="src/main.c src/ants.c"
 # USER_DATA="src/images/ant-sprites.c"
 
-USER_SOUNDS="src/sounds/test-sound.c"
+USER_FILES="src/main.c"
+USER_DATA=""
+
+# USER_SOUNDS="src/sounds/test-sound.c"
+USER_SOUNDS=""
 
 # OPTIMIZE="-g"
 # OPTIMIZE="-O3 -g"

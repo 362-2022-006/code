@@ -513,8 +513,8 @@ static bool _do_code(struct FATFile *file, int *status) {
 
     if (_check_position(code_load_position)) {
         puts("Not enough space to load code");
-        // printf("Break is at %p\n", sbrk(0));
-        // printf("Code wants to load at %p\n", code_load_position);
+        printf("Break is at %p\n", sbrk(0));
+        printf("Code wants to load at %p\n", code_load_position);
         return true;
     }
     if (_check_position(entry_point)) {

@@ -453,7 +453,7 @@ void __io_putchar(unsigned char c) {
         escape_index = 0;
         memset(escape_num, 0, sizeof escape_num);
     } else {
-        if (c >= 0x7f) {
+        if (c == 0x7f) {
             // not valid ignore
         } else if (c >= 0x20) {
             _write_char(c, *current_line, *current_column, f_color, b_color);

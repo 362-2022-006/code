@@ -429,7 +429,7 @@ uint32_t _find_dir_entry_matching(const char *name, struct FATFile *file, uint8_
                     for (int i = 1; i < 0x20; i += 2) {
                         if (!*(((char *)lfn_ent) + i))
                             break;
-                        if (name[name_pos++] != *(((char *)lfn_ent) + i)) {
+                        if (name[name_pos++] != *(((char *)lfn_ent) + i)) { // TODO: case insensitive
                             match = false;
                             break;
                         }
@@ -452,7 +452,7 @@ uint32_t _find_dir_entry_matching(const char *name, struct FATFile *file, uint8_
                         len = i + 1;
                 }
                 for (int i = 0; i < len; i++) {
-                    if (name[name_pos++] != ent->name[i]) {
+                    if (name[name_pos++] != ent->name[i]) {  // TODO: case insensitive
                         match = false;
                         break;
                     }
@@ -470,7 +470,7 @@ uint32_t _find_dir_entry_matching(const char *name, struct FATFile *file, uint8_
                     }
                 }
                 for (int i = 0; i < len; i++) {
-                    if (name[name_pos++] != ent->extension[i]) {
+                    if (name[name_pos++] != ent->extension[i]) {  // TODO: case insensitive
                         match = false;
                         break;
                     }
