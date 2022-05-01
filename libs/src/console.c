@@ -11,8 +11,8 @@
 void *sbrk(int incr);
 static bool _do_code(struct FATFile *file, int *status);
 
-static bool hasFile = false;
-static struct FATFile currentFile;
+static bool *hasFile = (bool *)0x2000002f;
+static struct FATFile *currentFile = (struct FATFile *)0x20000030;
 static uint8_t *sd_buffer;
 
 void start_console(bool prompt) {
@@ -195,9 +195,9 @@ static char *_read_io_word(unsigned int max_len) {
 static bool _update_current_file(void) {
     if (init_fat(sd_buffer))
         return true;
-    if (!hasFile) {
-        open_root(&currentFile);
-        hasFile = true;
+    if (!*hasFile) {
+        open_root(&*currentFile);
+        *hasFile = true;
     }
     return false;
 }
@@ -210,7 +210,7 @@ static int _read_path(struct FATFile *file) {
     char *path = _read_io_word(300);
     unsigned int startIndex = 0, index = 0;
 
-    *file = currentFile;
+    *file = *currentFile;
     if (path[0] == '\n') {
         free(path);
         return -1;
@@ -248,7 +248,7 @@ static void _process_command(const char *command, bool no_more_input) {
             // puts("Could not initialize SD");
         } else {
             if (no_more_input)
-                ls(&currentFile, sd_buffer);
+                ls(&*currentFile, sd_buffer);
             else {
                 struct FATFile file;
                 if (_read_path(&file) < -1) {
@@ -333,7 +333,7 @@ static void _process_command(const char *command, bool no_more_input) {
         if (_update_current_file()) {
             puts("Could not initialize SD");
         } else if (no_more_input)
-            open_root(&currentFile);
+            open_root(&*currentFile);
         else {
             struct FATFile file;
             if (_read_path(&file) < 0) {
@@ -341,11 +341,11 @@ static void _process_command(const char *command, bool no_more_input) {
             } else if (!file.directory) {
                 puts("Not a directory");
             } else {
-                currentFile = file;
+                *currentFile = file;
             }
         }
     } else if (!strcmp(command, "eject")) {
-        hasFile = false;
+        *hasFile = false;
         close_fat();
     } else if (!strcmp(command, "clear")) {
         printf("\033[2J\033[1;1H");

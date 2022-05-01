@@ -16,7 +16,12 @@
 #include "tetris.h"
 #include "touhou.h"
 
+#include "internal-clock.h"
+
 int main() {
+
+    internal_clock();
+
     start_console(true);
 
     for (;;) {
