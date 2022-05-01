@@ -196,7 +196,7 @@ static bool _update_current_file(void) {
     if (init_fat(sd_buffer))
         return true;
     if (!*hasFile) {
-        open_root(&*currentFile);
+        open_root(currentFile);
         *hasFile = true;
     }
     return false;
@@ -248,7 +248,7 @@ static void _process_command(const char *command, bool no_more_input) {
             // puts("Could not initialize SD");
         } else {
             if (no_more_input)
-                ls(&*currentFile, sd_buffer);
+                ls(currentFile, sd_buffer);
             else {
                 struct FATFile file;
                 if (_read_path(&file) < -1) {
@@ -333,7 +333,7 @@ static void _process_command(const char *command, bool no_more_input) {
         if (_update_current_file()) {
             puts("Could not initialize SD");
         } else if (no_more_input)
-            open_root(&*currentFile);
+            open_root(currentFile);
         else {
             struct FATFile file;
             if (_read_path(&file) < 0) {
